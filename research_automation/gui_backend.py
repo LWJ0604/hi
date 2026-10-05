@@ -1,0 +1,244 @@
+"""GUI services. Workers communicate through a queue and never touch Tk."""
+import copy
+import json
+import os
+from pathlib import Path
+import queue
+import shutil
+import sqlite3
+import threading
+from urllib.parse import urlencode
+
+from .config import Config, initialize
+from .store import BusyError, lock
+from .util import now, write_json
+
+
+def ensure_config(path):
+    path = Path(path).resolve()
+    if not path.exists():
+        template = path.parent / ("config.windows.json" if os.name == "nt" else "config.example.json")
+        if template.exists():
+            data = Config(template).data
+            if os.name=="nt":
+                home=Path(os.environ.get("USERPROFILE",Path.home()))
+                onedrive=Path(os.environ.get("OneDrive",home/"OneDrive"))
+                suggestions=[onedrive/"문서"/"Obsidian Vault",onedrive/"Documents"/"Obsidian Vault",home/"Documents"/"Obsidian Vault"]
+                existing=next((p for p in suggestions if p.is_dir() and (p/"측정 데이터").is_dir()),None)
+                if existing is not None:
+                    data["paths"]["vault"]=str(existing);data["paths"]["inbox"]=str(existing/"측정 데이터")
+            write_json(path, data)
+        else:
+            return initialize(path)
+    return Config(path)
+
+
+def save_settings(path, inbox, vault, ai_enabled):
+    current = Config(path)
+    data = copy.deepcopy(current.data)
+    if not isinstance(ai_enabled, bool):
+        raise ValueError("AI 설정은 켜기/끄기로 지정하세요.")
+    changed = current.data["ai"]["enabled"] != ai_enabled
+    for key, value in (("inbox", inbox), ("vault", vault)):
+        if not str(value).strip():
+            raise ValueError("측정 데이터와 Vault 폴더를 선택하세요.")
+        candidate = (current.root / Path(str(value).strip()).expanduser()).resolve()
+        if candidate != current.paths[key]:
+            data["paths"][key] = str(candidate)
+            changed = True
+    data["ai"]["enabled"] = ai_enabled
+    if not changed:
+        return current
+    # Validate all paths/QC before touching the user's existing configuration.
+    import tempfile
+    descriptor, name = tempfile.mkstemp(prefix=".gui-config-", suffix=".json", dir=current.root)
+    os.close(descriptor)
+    draft = Path(name)
+    try:
+        write_json(draft, data)
+        Config(draft)
+        with lock(current):
+            backup = current.path.with_name("config.before-gui-" + now(current).strftime("%Y%m%d-%H%M%S-%f") + ".json")
+            shutil.copy2(current.path, backup)
+            write_json(current.path, data)
+    finally:
+        draft.unlink(missing_ok=True)
+    return Config(current.path)
+
+
+def get_api_key():
+    if os.name == "nt":
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+                value, _ = winreg.QueryValueEx(key, "OPENAI_API_KEY")
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+        except OSError:
+            pass
+    return os.environ.get("OPENAI_API_KEY", "").strip()
+
+
+def register_api_key(value):
+    value = value.strip()
+    if not value or any(ord(char) < 32 for char in value):
+        raise ValueError("API 키를 입력하세요. 여러 줄 대신 키 하나를 붙여넣으세요.")
+    if os.name != "nt":
+        raise ValueError("영구 키 등록은 Windows에서 실행하세요. Linux 검증에서는 환경변수를 사용합니다.")
+    import winreg
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+        winreg.SetValueEx(key, "OPENAI_API_KEY", 0, winreg.REG_SZ, value)
+    os.environ["OPENAI_API_KEY"] = value
+    # Existing GUI workers use the process value; new apps also receive the
+    # Windows environment notification. Never put the key in a command line.
+    import ctypes
+    from ctypes import wintypes
+    response = ctypes.c_size_t()
+    try:
+        send = ctypes.windll.user32.SendMessageTimeoutW
+        send.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPCWSTR, wintypes.UINT, wintypes.UINT, ctypes.POINTER(ctypes.c_size_t)]
+        send(0xFFFF, 0x001A, 0, "Environment", 0x0002, 1000, ctypes.byref(response))
+    except (AttributeError, OSError):
+        pass
+    return {"registered": True}
+
+
+def check_api_key(client=None):
+    key = get_api_key()
+    if not key:
+        raise ValueError("먼저 API 키를 등록하세요.")
+    import httpx
+    owned = client is None
+    client = client or httpx.Client(timeout=10)
+    try:
+        response = client.get("https://api.openai.com/v1/models", headers={"Authorization": "Bearer " + key})
+        if response.status_code == 200:
+            return "API 인증 성공. 실제 해석은 모델 권한과 API 잔액에 따라 달라집니다."
+        if response.status_code in (401, 403):
+            raise ValueError("API 인증 실패. 키와 프로젝트 권한을 확인하세요.")
+        if response.status_code == 429:
+            raise ValueError("API 요청 제한. 잠시 후 다시 확인하세요.")
+        raise ValueError(f"API 연결 확인 실패 (HTTP {response.status_code}).")
+    except (httpx.TimeoutException, httpx.NetworkError) as error:
+        raise ValueError("OpenAI 연결 실패. 인터넷 연결을 확인하세요.") from error
+    finally:
+        if owned:
+            client.close()
+
+
+def safe_error(error):
+    text = str(error)
+    key = os.environ.get("OPENAI_API_KEY", "")
+    return (text.replace(key, "[API 키 숨김]") if key else text)[:2000]
+
+
+def job_row(job):
+    row = {**job, "measurement_date": "—", "device_name": "—", "measurement_type": "—", "condition_label": "—", "qc": "—", "review_required": False}
+    if job.get("result_path"):
+        try:
+            summary = json.loads(Path(job["result_path"]).read_text(encoding="utf-8"))
+            context = summary.get("research_context", {})
+            row.update({key: context.get(key) or "미확인" for key in ("measurement_date", "device_name", "measurement_type", "condition_label")})
+            row["qc"] = summary["qc"]["overall"]
+            row["review_required"] = context.get("metadata_status") != "confirmed" if "metadata_status" in context else bool(context.get("warnings"))
+            detail = "\n".join(context.get("warnings", []))
+            for key, label in (("measurement_date", "측정 날짜"), ("illumination", "조명"), ("device_name", "소자 이름"), ("device_type", "소자 종류"), ("source_folder_path", "상위 폴더 경로"), ("Settings/Last Executed", "장비 기록"), ("folder/", "폴더: ")):
+                detail = detail.replace(key, label)
+            if "metadata_status" in context:
+                detail = "메타데이터: " + context["metadata_status"] + " (PASS/SKIP과 별개)\n" + detail
+            row["details"] = detail
+            row["qc_details"] = "\n".join(f"{check['code']} ({check.get('scope', '')}): {check['status']}" for check in summary["qc"]["checks"] if check["status"] in ("WARN", "FAIL"))[:5000]
+        except (OSError, ValueError, KeyError):
+            row["details"] = "결과 파일을 읽을 수 없습니다. 원본이 있으면 다시 분석하세요."
+    return row
+
+
+def load_jobs(cfg, limit=200):
+    path = cfg.paths["state"] / "jobs.sqlite3"
+    if not path.exists():
+        return []
+    # Opening the GUI must not initialize or mutate the pipeline database.
+    with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1) as database:
+        database.row_factory = sqlite3.Row
+        jobs = [dict(row) for row in database.execute("SELECT * FROM jobs ORDER BY updated_at DESC LIMIT ?", (limit,))]
+    return [job_row(job) for job in jobs]
+
+
+def note_uri(path):
+    path = Path(path).resolve()
+    if not path.is_file() or path.suffix.lower() != ".md":
+        raise ValueError("열 수 있는 연구노트가 없습니다.")
+    return "obsidian://open?" + urlencode({"path": str(path)})
+
+
+class JobController:
+    def __init__(self, scan_function=None):
+        self.events = queue.Queue()
+        self.stop_event = threading.Event()
+        self.thread = None
+        self.scan_function = scan_function
+        self.mode = None
+
+    @property
+    def busy(self):
+        return self.thread is not None and self.thread.is_alive()
+
+    def emit(self, event, **data):
+        self.events.put({"event": event, **data})
+
+    def start(self, mode, cfg=None, task=None):
+        if self.busy:
+            raise BusyError("현재 작업이 끝난 뒤 실행하세요.")
+        if mode not in ("scan", "scan_retry", "watch", "weekly", "refresh", "task"):
+            raise ValueError("지원하지 않는 GUI 작업입니다.")
+        self.stop_event.clear()
+        self.mode = mode
+        self.thread = threading.Thread(target=self._work, args=(mode, cfg, task), daemon=True)
+        self.thread.start()
+
+    def stop(self):
+        self.stop_event.set()
+
+    def _progress(self, cfg, outcome):
+        self.emit("progress", outcome=outcome)
+        if outcome["status"] in ("completed", "failed"):
+            job = {"id": outcome["job_id"], "source": outcome["source"], "status": outcome["status"], "note_path": outcome.get("note"), "ai_status": outcome.get("ai"), "error": outcome.get("error"), "result_path": outcome.get("result_path") or (str(cfg.paths["analysis"] / "runs" / outcome["job_id"] / "result.json") if outcome["status"] == "completed" else None)}
+            self.emit("row", row=job_row(job))
+
+    def _work(self, mode, cfg, task):
+        try:
+            if mode == "task":
+                self.emit("task_result", result=task())
+                return
+            if mode == "refresh":
+                self.emit("jobs", jobs=load_jobs(cfg))
+                return
+            api_key = get_api_key()
+            if api_key:
+                os.environ["OPENAI_API_KEY"] = api_key
+            if mode == "weekly":
+                from .reports import weekly
+                self.emit("weekly", result=weekly(cfg))
+                self.emit("jobs", jobs=load_jobs(cfg))
+                return
+            from .pipeline import scan
+            scan_function = self.scan_function or scan
+            waiting = False
+            while not self.stop_event.is_set():
+                try:
+                    result = scan_function(cfg, retry_failed=mode == "scan_retry", on_progress=lambda outcome: self._progress(cfg, outcome), stop_event=self.stop_event)
+                    self.emit("batch", result=result)
+                    self.emit("jobs", jobs=load_jobs(cfg))
+                    waiting = False
+                except BusyError:
+                    if not waiting:
+                        self.emit("waiting", message="다른 분석 작업이 실행 중입니다. 종료 후 다시 시도합니다.")
+                        waiting = True
+                    if mode != "watch":
+                        return
+                if mode != "watch" or self.stop_event.wait(cfg.data["ingest"]["poll_seconds"]):
+                    break
+        except Exception as error:
+            self.emit("error", message=safe_error(error))
+        finally:
+            self.emit("finished", mode=mode, stopped=self.stop_event.is_set())

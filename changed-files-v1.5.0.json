@@ -1,0 +1,234 @@
+{
+  "baseline": "v1.4.1",
+  "version": "1.5.0",
+  "files": [
+    {
+      "path": "Preview-Notes.cmd",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "ebe054e678a31d9a35ed063738f4129ef0a23a0f8e3c085f38ca352476d91578"
+    },
+    {
+      "path": "README.md",
+      "change": "modified",
+      "previous_sha256": "3f7333893bea513fc19882ebd61f791a5a82621b7f198f86bf290942be977112",
+      "sha256": "58cba2dc0e09c455b93d8c996f0bd629392ab84eaa7adc20382045f1176338d3"
+    },
+    {
+      "path": "UPDATE-1.5.0.md",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "c7b43a249aa6664d00b5405b2412e9887f5cc78aa34cf071b765eb3ea73f6124"
+    },
+    {
+      "path": "docs/검증결과-v1.1.0.md",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "526030c97de4914bc5e15ed114c3c7cc0f54a4c64ad5ca403c0aca3a8b032c74"
+    },
+    {
+      "path": "docs/검증결과-v1.2.0.md",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "3cd8dfc71bfde16e074e125b127bae16773615c61f77b836c903f3036f452f14"
+    },
+    {
+      "path": "docs/검증결과-v1.3.0.md",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "e62a5bff9c80a195106354a31763e855508e8d0dc3a078863166f051e69263f2"
+    },
+    {
+      "path": "docs/검증결과-v1.3.1.md",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "807c81529fc65f127cfb2d2d098ba44f21d5dc4584a1b177c98d502de43b8c06"
+    },
+    {
+      "path": "docs/검증결과-v1.5.0.md",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "3ceed3eb0a5e7c97a859dfb64ce11469cad59c29b63f8c338b108bb1840dc1a7"
+    },
+    {
+      "path": "docs/검증결과.md",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "064ab083381dabc5f64004f0aec827d59685706048136d332ee60cf0ec6fb85b"
+    },
+    {
+      "path": "docs/구현대응표.md",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "b0a212bd357469a6d2fbbddbd93a5d759e66ca539350b03e7992d8c80fa17dd3"
+    },
+    {
+      "path": "examples/fet-extraction-settings.example.json",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "64dfb7f4a46c00706bf3e1ea1e67b71d969f9fdc1bf590177536655bbf1b5ce6"
+    },
+    {
+      "path": "minus-verification-v1.5.0.json",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "51c49cc117440ff2dc3c658de9a0b5516982b76476ce54a428f2ffae5dd38e0d"
+    },
+    {
+      "path": "note-science-baseline-v1.4.1.json",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "9c106c62ee493163b9ede00704fe4651f92b0ca2cd5af1d052294802b10e85dd"
+    },
+    {
+      "path": "pyproject.toml",
+      "change": "modified",
+      "previous_sha256": "061a0fbbc38736206386045a2416e87907c9b8e6637efd2bbbdef8e985e8ffae",
+      "sha256": "947856caec375d755ca1c962d7ed761217c9e2c8317247f648611b0593e8f043"
+    },
+    {
+      "path": "research_automation/__init__.py",
+      "change": "modified",
+      "previous_sha256": "f3acec32e20cca63f2755fae2ee73be01d6b324e6eb015fc61c7fa0c829ac7b4",
+      "sha256": "427424034851549ee2875c324cfb5698b9a88a45a77a7f058bab16b3f6a82cef"
+    },
+    {
+      "path": "research_automation/cli.py",
+      "change": "modified",
+      "previous_sha256": "2beae3f8c966c625e375834a20612893c2b75b890bd9f7b5c80f9264c51a1c96",
+      "sha256": "e52a3f11bc233ef324e9ba313445b58213f6b65b0f93135b761981038ffebacf"
+    },
+    {
+      "path": "research_automation/comparison_catalog.py",
+      "change": "modified",
+      "previous_sha256": "b9c09631d8297421a6d2bf36a6f8ee99ba76108fc378158bc4c166a7cd247668",
+      "sha256": "a8fbbfc449de998c48050efa668cddcd66035080c47509f7936cc0b9c2fd42f7"
+    },
+    {
+      "path": "research_automation/fet_figures.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "655f3d8c8bdfa550fc5e2f9ad32e9ff3dcd4a1ec701f58bfd293ed0dd0bb2b44"
+    },
+    {
+      "path": "research_automation/fet_methods.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "996b64079606b260c5b98fb35cda2f91e8d47c4af14f3bdd29a090a6a59b049f"
+    },
+    {
+      "path": "research_automation/fet_parameters.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "e7f518102232ac612b1841e897d047878497b80d87c23913fd28566cacc1571c"
+    },
+    {
+      "path": "research_automation/fet_settings.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "20940b884ad85de5dbbb1e69cd87fbe015ee17bfde508a017a711418e172864b"
+    },
+    {
+      "path": "research_automation/gui.py",
+      "change": "modified",
+      "previous_sha256": "5b9449325fb075a6d6a077cd26b96979abbcdc24038ef6661021a67cecfef779",
+      "sha256": "b16090d1dee54efba467355d28072e49166a5eff8ef3c867a25312f46fb6be2c"
+    },
+    {
+      "path": "research_automation/note_figures.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "d165a9c16589f02780d589157ea7703cc09bd6c83875d08f093fba9a0065d5ad"
+    },
+    {
+      "path": "research_automation/note_index.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "99eba5da3d7d1a6ee0b1a8b940418953b2647ec5428458802040bad96f23813c"
+    },
+    {
+      "path": "research_automation/note_presentation.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "a6ebf207f13ebeb5e295b1b833f3407a28348ccd05fc81ff4895c60fb2e6e32f"
+    },
+    {
+      "path": "research_automation/note_preview.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "b64e49e4a9715c4ca7edeb2f906acb1ce3d31b6cb1bded34d2415dc08589cad7"
+    },
+    {
+      "path": "research_automation/pipeline.py",
+      "change": "modified",
+      "previous_sha256": "f210a6912b38644c49779c5bb1bda8f6355f186e704a3218e3da850d25640282",
+      "sha256": "2b1d0104d73bcf9d5e0283a4aba4fe5ebb7931c63220b1fa9427261683fff71b"
+    },
+    {
+      "path": "research_automation/plot_style.py",
+      "change": "modified",
+      "previous_sha256": "b10afab5bd9de7d2d92f551ad91e179bf4a8f31f5c50187bf4506dfbfd4f87e7",
+      "sha256": "ae498383dd8ac2cdd2a09195628e7222698bfbd88d0528c5c3f4fff435f68d8d"
+    },
+    {
+      "path": "research_automation/render.py",
+      "change": "modified",
+      "previous_sha256": "7994863712ff29d69f426436c094736b629acca524ffe6b83a9cec585b4d097c",
+      "sha256": "fcff459fc85e7b697cf7c99c49b4ffedcc43ff57ec1406fd4d7c90564ad73054"
+    },
+    {
+      "path": "research_automation/science_exports.py",
+      "change": "modified",
+      "previous_sha256": "6f9de927aa44b0aeec8fa174c6d9bb7b9c3b9d46de8f39fc63906471ba9ac475",
+      "sha256": "1c1e2149fdb8b80ac9292eec31229725b8f2d9d94471df17da2322ba5a282185"
+    },
+    {
+      "path": "research_automation/special_notes.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "da936eda8a53426b6d33d9edf00432ec6edbbbb71b1a5950322a0bce14a034dd"
+    },
+    {
+      "path": "scripts/preview_note_html.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "c8eb6a9c4be543a25be3fdaf26a971b590ded4e6a921021ae2f490ff6bfcccdb"
+    },
+    {
+      "path": "test-results-v1.5.0.txt",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "cab77f852bc9b9b78e5b8db007d4dad6515a9e3219f7774e1b38aed4360f36d4"
+    },
+    {
+      "path": "tests/test_gui.py",
+      "change": "modified",
+      "previous_sha256": "1365420ea66e6a6744765088c55624ea67f310d4b5209422c78063c74bbf557a",
+      "sha256": "229be0c24f50c9559d625401a046e7ee0c9b8f97f3151d6ce302cb0dbb8f5360"
+    },
+    {
+      "path": "tests/test_note_presentation.py",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "9a11977338700a23d783e250021727a05d072e17eb6fa4562bdeede29d5784f9"
+    },
+    {
+      "path": "tests/test_result_review.py",
+      "change": "modified",
+      "previous_sha256": "466264e27986996fc33c125f70e1e391a00ccf5a53bbb8df3b0023f31f2fe552",
+      "sha256": "edf134a340e49692922f92a970146b4c1eb4c4690471533707563d060bc7c77d"
+    },
+    {
+      "path": "verification-v1.5.0.json",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "0cb0eff50e47aba7232e6335f6d583e645e31c5df56e4822a73c07392b98405b"
+    },
+    {
+      "path": "visual-verification-v1.5.0.json",
+      "change": "added",
+      "previous_sha256": null,
+      "sha256": "80087684938b97c863e643f4f07269644c005c1718ae0eaa8932edfd4795654e"
+    }
+  ]
+}

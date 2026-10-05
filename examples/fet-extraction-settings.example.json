@@ -1,0 +1,80 @@
+{
+  "devices": {
+    "drain-fold": {
+      "channel_length_m": {
+        "value": 1.5e-06,
+        "unit": "m",
+        "status": "confirmed",
+        "source": "사용자 제공: 2026-10-05 대화 · L/W/절연막 값"
+      },
+      "channel_width_m": {
+        "value": 4e-07,
+        "unit": "m",
+        "status": "confirmed",
+        "source": "사용자 제공: 2026-10-05 대화 · L/W/절연막 값"
+      },
+      "oxide_thickness_m": {
+        "value": 9e-08,
+        "unit": "m",
+        "status": "confirmed",
+        "source": "사용자 제공: 2026-10-05 대화 · L/W/절연막 값"
+      },
+      "dielectric": {
+        "value": "SiO2",
+        "unit": "1",
+        "status": "confirmed",
+        "source": "사용자 제공: 2026-10-05 대화 · L/W/절연막 값"
+      },
+      "relative_permittivity": {
+        "value": 3.9,
+        "unit": "1",
+        "status": "assumed",
+        "source": "SiO₂의 통상적 상대유전율 3.9 가정 · 사용자/시편 확인 전"
+      },
+      "cox_f_per_m2": {
+        "value": 0.00038368147188800006,
+        "unit": "F/m²",
+        "status": "assumed",
+        "source": "Cox = ε0 εr/t; εr=3.9 가정; 두께 90 nm 사용자 제공"
+      }
+    },
+    "center-fold": {
+      "channel_length_m": {
+        "value": 2e-06,
+        "unit": "m",
+        "status": "confirmed",
+        "source": "사용자 제공: 2026-10-05 대화 · L/W/절연막 값"
+      },
+      "channel_width_m": {
+        "value": 4e-07,
+        "unit": "m",
+        "status": "confirmed",
+        "source": "사용자 제공: 2026-10-05 대화 · L/W/절연막 값"
+      },
+      "oxide_thickness_m": {
+        "value": 9e-08,
+        "unit": "m",
+        "status": "confirmed",
+        "source": "사용자 제공: 2026-10-05 대화 · L/W/절연막 값"
+      },
+      "dielectric": {
+        "value": "SiO2",
+        "unit": "1",
+        "status": "confirmed",
+        "source": "사용자 제공: 2026-10-05 대화 · L/W/절연막 값"
+      },
+      "relative_permittivity": {
+        "value": 3.9,
+        "unit": "1",
+        "status": "assumed",
+        "source": "SiO₂ 통상 상대유전율 가정"
+      },
+      "cox_f_per_m2": {
+        "value": 0.00038368147188800006,
+        "unit": "F/m²",
+        "status": "assumed",
+        "source": "εr=3.9 가정 · SiO₂ 90 nm 사용자 확인"
+      }
+    }
+  }
+}

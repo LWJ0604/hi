@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+config.local.json
+data_inbox/
+analysis/
+vault/
+state/
+logs/
+backups/
+*.egg-info/
+
+# Local settings and experimental inputs
+config.json
+config.*.local.json
+.env.*
+note-preview*/
+actual-validation*/
+synthetic-validation*/
+*.sqlite3
+*.log

@@ -1,0 +1,11 @@
+{
+  "analysis.py": "3b5f5f51cfe89b07bb73f137e004a2ff5285582b864cd1667d6020863c06216b",
+  "scientific_metrics.py": "b620acd8f0e8148aa808010cfdd25d694b5fd91c3d4583fd417b15d6f4c77acd",
+  "science_qc.py": "ce679fe90d94ea521f7e23b91e028984060e22829b7dc4a7b76d74aeef1184cc",
+  "rectifier_models.py": "1b09ebc09009c437ed6251cc8ff489106161b0933182481518b7cbd081eec5d5",
+  "comparison.py": "351d1a45bfb093a2aa3f45e62de5e196a5e45e655593521aab4acc2b909e1bfc",
+  "config.py": "0fcc1332c3d8645b4031c5cfe14a96e4d292bda68657dee5c1ac038e2d6eb6b5",
+  "ingest.py": "8be6629443ec501e4d235d8e687640d5bc0d34a1cba108f8232d4714b31465ba",
+  "metadata_review.py": "28979caa98e8541b53bb0367cf60aefe6e9e8ccbe806086c39598c7d03b69ec1",
+  "organization.py": "f5fa1ead63cec9a079b305b1dfac24b8cef9309bd423e4dbc0ffbd6c74c2003a"
+}
