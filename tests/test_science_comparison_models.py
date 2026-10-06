@@ -9,8 +9,11 @@ from research_automation.rectifier_models import predict_current,fit_effective_m
 
 class ComparisonModelTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();p=Path(self.temp.name)/'c.json';p.write_text(json.dumps(copy.deepcopy(DEFAULT)));self.cfg=Config(p)
-    def tearDown(self):self.temp.cleanup()
+        self.temp=tempfile.TemporaryDirectory();p=Path(self.temp.name)/'c.json';p.write_text(json.dumps(copy.deepcopy(DEFAULT)), encoding="utf-8");self.cfg=Config(p)
+    def tearDown(self):
+        from test_cleanup import close_test_logs
+        close_test_logs(self.temp.name)
+        self.temp.cleanup()
     def context(self,lighting='dark'):
         fields={k:{'status':'confirmed','value':'same'} for k in REQUIRED}
         fields['illumination']={'status':'confirmed','value':lighting}

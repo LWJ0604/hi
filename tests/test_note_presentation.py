@@ -50,7 +50,7 @@ class NotePresentationTests(unittest.TestCase):
             'vg_v':-1,'unit':'A/V','metric_status':'unavailable','reason':'unconfirmed_voltage_or_current_units'}}
         before=copy.deepcopy(s)
         with tempfile.TemporaryDirectory() as temp:
-            d=Path(temp);frame.to_csv(d/'curves.csv',index=False);(d/'result.json').write_text(json.dumps(s))
+            d=Path(temp);frame.to_csv(d/'curves.csv',index=False);(d/'result.json').write_text(json.dumps(s), encoding="utf-8")
             text=render_note(s,'Attachments/test',d,'figure.png');body=text.split('## ⑧')[0]
         for heading in ('① 연구 질문','② 조건 한 줄','③ 현재 판단','④ 대표 근거 그림','⑤ 핵심 수치','⑥ 의미와 한계','⑦ 다음 확인'):
             self.assertIn(heading,body)
@@ -73,13 +73,13 @@ class NotePresentationTests(unittest.TestCase):
 
     def test_root_index_append_preserves_researcher_text_and_counts_missing(self):
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp);data=copy.deepcopy(DEFAULT);(root/'config.json').write_text(json.dumps(data));cfg=Config(root/'config.json');cfg.ensure_dirs()
+            root=Path(temp);data=copy.deepcopy(DEFAULT);(root/'config.json').write_text(json.dumps(data), encoding="utf-8");cfg=Config(root/'config.json');cfg.ensure_dirs()
             experiments=cfg.paths['vault']/'Experiments';experiments.mkdir(exist_ok=True)
-            original='사용자 메모 그대로\n';(experiments/'index.md').write_text(original)
+            original='사용자 메모 그대로\n';(experiments/'index.md').write_text(original, encoding="utf-8")
             (cfg.paths['inbox']/'new.xls').write_bytes(b'not processed')
             s,_=fixture();index=publish_index(cfg,[(s,'Experiments/preview.md')],[],True)
-            self.assertTrue((experiments/'index.md').read_text().startswith(original))
-            text=index.read_text();self.assertIn('미처리/변경/읽기 확인 필요 1개',text)
+            self.assertTrue((experiments/'index.md').read_text(encoding="utf-8").startswith(original))
+            text=index.read_text(encoding="utf-8");self.assertIn('미처리/변경/읽기 확인 필요 1개',text)
             self.assertTrue((experiments/'최신 연구 결과.md').exists())
 
 
@@ -135,11 +135,11 @@ class SpecialNoteTests(unittest.TestCase):
     def test_failure_note_preserves_error_evidence_without_internal_codes_in_body(self):
         from research_automation.special_notes import failure_note
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp);(root/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)))
+            root=Path(temp);(root/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)), encoding="utf-8")
             cfg=Config(root/'config.json');cfg.ensure_dirs()
             diagnostic=root/'failed.json';data={'job_id':'fail','source_relative_path':'bad.xls','parse_status':'failed','error':'NoMeasurementHeader: missing'}
-            diagnostic.write_text(json.dumps(data));before=diagnostic.read_bytes()
-            path=failure_note(diagnostic,cfg);text=path.read_text();body=text.split('## ⑧')[0]
+            diagnostic.write_text(json.dumps(data), encoding="utf-8");before=diagnostic.read_bytes()
+            path=failure_note(diagnostic,cfg);text=path.read_text(encoding="utf-8");body=text.split('## ⑧')[0]
             self.assertIn('파일 읽기 실패',body);self.assertNotIn('NoMeasurementHeader',body)
             self.assertEqual(diagnostic.read_bytes(),before)
             for link in re.findall(r'\[\[([^\]|]+)',text):self.assertTrue((cfg.paths['vault']/link).is_file())
@@ -159,9 +159,12 @@ class SpecialNoteTests(unittest.TestCase):
 class ComparisonPresentationTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)
-        (self.root/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)))
+        (self.root/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)), encoding="utf-8")
         self.cfg=Config(self.root/'config.json');self.cfg.ensure_dirs()
-    def tearDown(self):self.temp.cleanup()
+    def tearDown(self):
+        from test_cleanup import close_test_logs
+        close_test_logs(self.temp.name)
+        self.temp.cleanup()
     def records(self,other_date=False,other_sweep=False):
         from research_automation.comparison import REQUIRED
         jobs=[]
@@ -174,9 +177,9 @@ class ComparisonPresentationTests(unittest.TestCase):
             if lighting=='light':frame['id_a']+=1e-9
             if lighting=='light' and other_sweep:s['groups'][0]['original_sweep']['min_v']=-40
             directory=self.cfg.paths['analysis']/lighting;directory.mkdir()
-            (directory/'result.json').write_text(json.dumps(s));frame.to_csv(directory/'curves.csv',index=False)
+            (directory/'result.json').write_text(json.dumps(s), encoding="utf-8");frame.to_csv(directory/'curves.csv',index=False)
             (self.cfg.paths['vault']/s['vault_note_relative_path']).parent.mkdir(exist_ok=True)
-            (self.cfg.paths['vault']/s['vault_note_relative_path']).write_text('User original')
+            (self.cfg.paths['vault']/s['vault_note_relative_path']).write_text('User original', encoding="utf-8")
             jobs.append({'completed_at':lighting,'result_path':str(directory/'result.json')})
         return jobs
     def test_cross_date_requires_explicit_selection_and_keeps_legacy_guard(self):
@@ -185,14 +188,14 @@ class ComparisonPresentationTests(unittest.TestCase):
         before={j['result_path']:Path(j['result_path']).read_bytes() for j in jobs}
         result=publish(self.cfg,jobs);self.assertEqual(result['pairs'],0);self.assertEqual(result['date_selection_pending'],1)
         selected=publish(self.cfg,jobs,selected_sources=['dark.csv','light.csv']);self.assertEqual(selected['eligible'],1)
-        text=Path(selected['note']).read_text();self.assertIn('다른 날짜를 사용자가 선택',text)
+        text=Path(selected['note']).read_text(encoding="utf-8");self.assertIn('다른 날짜를 사용자가 선택',text)
         self.assertEqual(before,{j['result_path']:Path(j['result_path']).read_bytes() for j in jobs})
         self.assertTrue(all((self.cfg.paths['vault']/link).is_file() for link in re.findall(r'\[\[([^\]|]+)',text)))
     def test_original_sweep_mismatch_is_aggregated_and_never_computed(self):
         from research_automation.comparison_catalog import publish
         result=publish(self.cfg,self.records(other_sweep=True))
         self.assertEqual(result['pairs'],0);self.assertEqual(sum(result['excluded_by_reason'].values()),1)
-        text=Path(result['note']).read_text();self.assertIn('crop으로 해결 안 됨',text)
+        text=Path(result['note']).read_text(encoding="utf-8");self.assertIn('crop으로 해결 안 됨',text)
 
 class MobilityAndSettingsTests(unittest.TestCase):
     def test_signed_mobility_cm2_conversion_and_assumptions_preserve_input(self):
@@ -208,7 +211,7 @@ class MobilityAndSettingsTests(unittest.TestCase):
     def test_settings_reject_wrong_units_and_preserve_prior_sidecar(self):
         from research_automation.fet_settings import save_settings
         with tempfile.TemporaryDirectory() as temp:
-            p=Path(temp);(p/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)));cfg=Config(p/'config.json');cfg.ensure_dirs()
+            p=Path(temp);(p/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)), encoding="utf-8");cfg=Config(p/'config.json');cfg.ensure_dirs()
             data={'devices':{'drain-fold':geometry_profiles()['drainfold']}}
             path=save_settings(cfg,data);before=path.read_bytes()
             bad=copy.deepcopy(data);bad['devices']['drain-fold']['channel_length_m']['unit']='nm'
@@ -220,17 +223,17 @@ class IndexCoverageTests(unittest.TestCase):
     def test_54_current_notes_and_69_old_results_do_not_claim_full_reprocessing(self):
         import hashlib
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp);(root/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)));cfg=Config(root/'config.json');cfg.ensure_dirs()
+            root=Path(temp);(root/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)), encoding="utf-8");cfg=Config(root/'config.json');cfg.ensure_dirs()
             jobs=[];records=[]
             for n in range(69):
                 s,_=fixture();s['source_relative_path']=f'sample-{n}.xls'
                 raw=b'synthetic coverage fixture';(cfg.paths['inbox']/s['source_relative_path']).write_bytes(raw)
-                old=cfg.paths['analysis']/f'old-{n}.json';old.write_text(json.dumps(s))
+                old=cfg.paths['analysis']/f'old-{n}.json';old.write_text(json.dumps(s), encoding="utf-8")
                 jobs.append({'result_path':str(old),'source':s['source_relative_path'],'source_hash':hashlib.sha256(raw).hexdigest(),'status':'completed'})
                 if n<54:
-                    new=copy.deepcopy(s);new['version']='1.5.0';path=cfg.paths['analysis']/f'new-{n}.json';path.write_text(json.dumps(new));jobs.append(dict(jobs[-1],result_path=str(path)))
+                    new=copy.deepcopy(s);new['version']='1.5.0';path=cfg.paths['analysis']/f'new-{n}.json';path.write_text(json.dumps(new), encoding="utf-8");jobs.append(dict(jobs[-1],result_path=str(path)))
                     records.append((new,f'Experiments/note-{n}.md'))
-            text=publish_index(cfg,records,jobs).read_text()
+            text=publish_index(cfg,records,jobs).read_text(encoding="utf-8")
             self.assertIn('새 형식 54개 파일',text);self.assertIn('v1.4.0: 저장 완료 69개 파일',text)
             self.assertIn('v1.5.0: 저장 완료 54개 파일',text);self.assertIn('포함하지 않은 저장 결과 15개',text)
             self.assertNotIn('전체 재처리가 완료되었습니다',text)

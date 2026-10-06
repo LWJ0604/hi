@@ -6,6 +6,7 @@ from pathlib import Path
 import queue
 import shutil
 import sqlite3
+from contextlib import closing
 import threading
 from urllib.parse import urlencode
 
@@ -140,6 +141,12 @@ def job_row(job):
             context = summary.get("research_context", {})
             row.update({key: context.get(key) or "미확인" for key in ("measurement_date", "device_name", "measurement_type", "condition_label")})
             row["qc"] = summary["qc"]["overall"]
+            from .result_evidence import evidence_items
+            items = evidence_items(summary)
+            shown = [f"{item['metric']}={item['support']['value']:.4g} {item['support'].get('unit') or ''}" +
+                     (f" (u={item['support']['evaluation_abs_vd_v']} V)" if 'evaluation_abs_vd_v' in item['support'] else '')
+                     for item in items if isinstance(item['support'].get('value'), (int, float))][:3]
+            row['metric_summary'] = '핵심 지표 (최대 3개, 후보 포함): ' + (' · '.join(shown) if shown else '값 보류 또는 저장된 근거 없음')
             row["review_required"] = context.get("metadata_status") != "confirmed" if "metadata_status" in context else bool(context.get("warnings"))
             detail = "\n".join(context.get("warnings", []))
             for key, label in (("measurement_date", "측정 날짜"), ("illumination", "조명"), ("device_name", "소자 이름"), ("device_type", "소자 종류"), ("source_folder_path", "상위 폴더 경로"), ("Settings/Last Executed", "장비 기록"), ("folder/", "폴더: ")):
@@ -153,12 +160,36 @@ def job_row(job):
     return row
 
 
+def metadata_update_notice(result, source):
+    """Describe actual update outcomes separately from an already-saved override."""
+    files = result.get('files')
+    outcomes = files if isinstance(files, list) else [{**result, 'source': source}]
+    completed = [item for item in outcomes if item.get('status') == 'completed']
+    unchanged = [item for item in outcomes if item.get('status') == 'unchanged']
+    missing = [item for item in outcomes if item.get('status') not in ('completed', 'unchanged')]
+    if not outcomes:
+        missing = [{'source': source, 'status': 'unknown', 'reason': '처리 결과가 없습니다.'}]
+    prefix = '확인 이력은 저장됐습니다. '
+    if missing:
+        labels = {'failed':'실패', 'rejected':'제외', 'deferred':'보류', 'blocked':'재시도 대기'}
+        details = '; '.join(f"{item.get('source') or source}: {labels.get(item.get('status'), '갱신 미확인')} "
+                            f"({item.get('reason') or item.get('error') or '사유 미기록'})" for item in missing)
+        state = '부분 갱신' if completed or unchanged else '결과 갱신 실패/제외'
+        return {'success': False, 'message': prefix + f'{state}: 새 결과 {len(completed)}개, 기존 결과 유지 {len(unchanged)}개. '
+                + '갱신되지 않은 항목: ' + details + '. 원본 경로와 처리 제한을 확인한 뒤 선택 파일을 다시 분석하세요.'}
+    if completed:
+        return {'success': True, 'message': prefix + f'새 결과 {len(completed)}개를 갱신했습니다. 기존 결과 유지 {len(unchanged)}개.'}
+    if unchanged:
+        return {'success': True, 'message': prefix + '이미 처리된 동일 조건의 기존 결과를 유지합니다. 새 결과를 생성하지 않았습니다.'}
+    return {'success': False, 'message': prefix + '결과 갱신을 확인할 수 없습니다. 선택 파일을 다시 분석하세요.'}
+
+
 def load_jobs(cfg, limit=200):
     path = cfg.paths["state"] / "jobs.sqlite3"
     if not path.exists():
         return []
     # Opening the GUI must not initialize or mutate the pipeline database.
-    with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1) as database:
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)) as database:
         database.row_factory = sqlite3.Row
         jobs = [dict(row) for row in database.execute("SELECT * FROM jobs ORDER BY updated_at DESC LIMIT ?", (limit,))]
     return [job_row(job) for job in jobs]
@@ -178,6 +209,8 @@ class JobController:
         self.thread = None
         self.scan_function = scan_function
         self.mode = None
+        from .pipeline_logging import PipelineLogOwner
+        self.log_owner = PipelineLogOwner()
 
     @property
     def busy(self):
@@ -199,6 +232,11 @@ class JobController:
     def stop(self):
         self.stop_event.set()
 
+    def close_resources(self):
+        if self.busy:
+            raise BusyError('작업 완료 후 로그를 닫으세요.')
+        self.log_owner.close()
+
     def _progress(self, cfg, outcome):
         self.emit("progress", outcome=outcome)
         if outcome["status"] in ("completed", "failed"):
@@ -206,6 +244,10 @@ class JobController:
             self.emit("row", row=job_row(job))
 
     def _work(self, mode, cfg, task):
+        with self.log_owner.activate():
+            self._execute(mode, cfg, task)
+
+    def _execute(self, mode, cfg, task):
         try:
             if mode == "task":
                 self.emit("task_result", result=task())

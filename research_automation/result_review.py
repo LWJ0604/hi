@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+from contextlib import closing
 import zipfile
 
 from . import __version__, code_fingerprint
@@ -14,7 +15,7 @@ def read_jobs(cfg):
     database = cfg.paths['state'] / 'jobs.sqlite3'
     if not database.exists():
         return []
-    with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
+    with closing(sqlite3.connect(database.as_uri() + '?mode=ro', uri=True)) as connection:
         connection.row_factory = sqlite3.Row
         return [dict(row) for row in connection.execute('SELECT * FROM jobs ORDER BY updated_at, id')]
 

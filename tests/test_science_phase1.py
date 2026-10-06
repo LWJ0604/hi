@@ -19,9 +19,12 @@ from research_automation.science_qc import point_qc
 class ParsingMetadataTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(); self.root=Path(self.temp.name)
-        (self.root/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)))
+        (self.root/'config.json').write_text(json.dumps(copy.deepcopy(DEFAULT)), encoding="utf-8")
         self.cfg=Config(self.root/'config.json'); self.cfg.ensure_dirs()
-    def tearDown(self):self.temp.cleanup()
+    def tearDown(self):
+        from test_cleanup import close_test_logs
+        close_test_logs(self.temp.name)
+        self.temp.cleanup()
     def total_book(self,missing=False):
         v=np.linspace(-40,40,161); biases=np.arange(-2,2.1,.5)
         rows=[[None]+[f'Vds = {b:g} V' for b in biases],['GateV']+['DrainI']*9]

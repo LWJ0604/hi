@@ -40,6 +40,7 @@ class ResearchApp:
         self.task_received = False
         self.had_error = False
         self.progress_running = False
+        self.refresh_notice = None
         self.controls = []
         self.settings_controls = []
         self.inbox = tk.StringVar()
@@ -173,10 +174,11 @@ class ResearchApp:
         note_button.grid(row=1,column=2,pady=(8,0),padx=(0,8));self.controls.append(note_button)
         fet_button=ttk.Button(results,text='FET 추출 조건',command=self._fet_settings)
         fet_button.grid(row=1,column=3,pady=(8,0));self.controls.append(fet_button)
-        detail_frame = ttk.LabelFrame(shell, text="선택한 파일 · 오류와 QC 확인", padding=6)
+        ttk.Button(results, text='RR / gm 계산 근거', command=self._show_evidence).grid(row=1, column=4, padx=(8,0), pady=(8,0))
+        detail_frame = ttk.LabelFrame(shell, text="선택한 결과 · 조건·판단·다음 확인", padding=6)
         detail_frame.grid(row=7, sticky="ew")
         detail_frame.columnconfigure(0, weight=1)
-        self.details = tk.Text(detail_frame, height=3, wrap="word", font=(family, 9), bg="white", relief="flat", state="disabled")
+        self.details = tk.Text(detail_frame, height=5, wrap="word", font=(family, 9), bg="white", relief="flat", state="disabled")
         self.details.grid(row=0, column=0, sticky="ew")
         detail_scroll = ttk.Scrollbar(detail_frame, command=self.details.yview)
         detail_scroll.grid(row=0, column=1, sticky="ns")
@@ -319,12 +321,43 @@ class ResearchApp:
         row = self._selected()
         if not row:
             return
-        text = [f"원본: {row['source']}", f"처리: {STATUS.get(row['status'], row['status'])} · QC: {row['qc']} · AI: {AI_STATUS.get(row.get('ai_status'), row.get('ai_status') or '—')}"]
+        text = [f"조건: {row['measurement_date']} · {row['device_name']} · {row['condition_label']}",
+                '현재 판단: QC는 데이터 점검 결과입니다. 연구 사용·비교에는 단위, 광 조건, 원래 sweep과 이력 확인이 필요합니다.',
+                '다음 확인: 메타데이터 검토에서 보류/충돌 조건을 확인하세요.' if row['review_required'] else '다음 확인: RR / gm 계산 근거에서 평가 전압과 원본점을 확인하세요.',
+                f"원본: {row['source']}", f"처리: {STATUS.get(row['status'], row['status'])} · QC: {row['qc']} · AI: {AI_STATUS.get(row.get('ai_status'), row.get('ai_status') or '—')}"]
+        text.insert(2, row.get('metric_summary', '사용 가능한 지표: 완료 결과를 선택하세요.'))
         text += [str(row[key]) for key in ("error", "details", "qc_details") if row.get(key)]
         self.details.configure(state="normal")
         self.details.delete("1.0", "end")
         self.details.insert("1.0", "\n".join(text))
         self.details.configure(state="disabled")
+
+    def _show_evidence(self):
+        row = self._selected()
+        if not row or row.get('status') != 'completed' or not row.get('result_path'):
+            self._notice('계산 근거를 보려면 완료 결과를 선택하세요.'); return
+        from .result_evidence import load_evidence, support_text
+        try:
+            items = load_evidence(row['result_path'])
+        except (OSError, ValueError) as error:
+            self._notice('결과 파일 경로를 확인한 뒤 선택 파일을 다시 분석하세요. ' + safe_error(error)); return
+        if not items:
+            self._notice('이 결과에는 RR / gm 근거가 없습니다. 이전 결과라면 원본을 보존하고 선택 파일만 다시 분석하세요.'); return
+        dialog = tk.Toplevel(self.root); dialog.title('계산 근거 · 저장된 결과 읽기'); dialog.geometry('950x650')
+        dialog.columnconfigure(1, weight=1); dialog.rowconfigure(0, weight=1)
+        listing = tk.Listbox(dialog, width=35, exportselection=False)
+        listing.grid(row=0, column=0, sticky='nsew', padx=8, pady=8)
+        panel = ttk.Frame(dialog); panel.grid(row=0, column=1, sticky='nsew', padx=8, pady=8)
+        text = tk.Text(panel, wrap='word'); scroll = ttk.Scrollbar(panel, command=text.yview)
+        text.configure(yscrollcommand=scroll.set); scroll.pack(side='right', fill='y'); text.pack(fill='both', expand=True)
+        for item in items:
+            voltage = item['support'].get('evaluation_abs_vd_v')
+            listing.insert('end', f"{item['group_id']} · {item['metric']}" + (f" · u={voltage} V" if voltage is not None else ''))
+        def select(event=None):
+            if not listing.curselection(): return
+            text.configure(state='normal'); text.delete('1.0','end')
+            text.insert('1.0', support_text(items[listing.curselection()[0]])); text.configure(state='disabled')
+        listing.bind('<<ListboxSelect>>', select); listing.selection_set(0); select()
 
     def _open(self, path):
         try:
@@ -506,10 +539,16 @@ class ResearchApp:
             def task():
                 from .review_recompute import metadata_recompute
                 save_override(cfg,summary['source_relative_path'],summary['source_sha256'],{field:parsed},why)
-                return metadata_recompute(cfg,result_path,changed_fields=[field])
+                try:
+                    return metadata_recompute(cfg,result_path,changed_fields=[field])
+                except Exception as error:
+                    raise ValueError('확인 이력은 저장됐지만 결과 갱신에 실패했습니다. 선택 파일을 다시 분석하세요. ' + safe_error(error)) from error
             def done(result):
-                self._notice('확인 이력을 저장하고 선택 파일의 메타데이터/영향 지표만 새 버전으로 갱신했습니다.')
-                if dialog.winfo_exists():dialog.destroy()
+                from .gui_backend import metadata_update_notice
+                notice = metadata_update_notice(result, row['source'])
+                self.refresh_notice = notice['message']
+                self._notice(notice['message'])
+                if notice['success'] and dialog.winfo_exists():dialog.destroy()
                 self._start('refresh')
             self._task(task,done)
         ttk.Button(metadata,text='확인 저장 + 선택 결과 갱신',command=save).pack(anchor='e',pady=8)
@@ -584,7 +623,8 @@ class ResearchApp:
                     elif event["stopped"] and not self.closing:
                         self.activity.set("중지 완료 · 저장된 결과는 유지됩니다.")
                     elif event["mode"] == "refresh" and not self.had_error:
-                        self.activity.set("준비됨 · 한 번 분석하거나 감시를 시작하세요.")
+                        self.activity.set(self.refresh_notice or "준비됨 · 한 번 분석하거나 감시를 시작하세요.")
+                        self.refresh_notice = None
         except queue.Empty:
             pass
         if self.closing and not self.controller.busy:
@@ -604,6 +644,7 @@ class ResearchApp:
             self._destroy()
 
     def _destroy(self):
+        self.controller.close_resources()
         # Cancel Python/Tk timers before deleting their callback commands.
         for timer in self.root.tk.call("after", "info"):
             self.root.tk.call("after", "cancel", timer)
@@ -613,16 +654,31 @@ class ResearchApp:
 def main():
     parser = argparse.ArgumentParser(description="연구 자동화 GUI")
     parser.add_argument("--config", default=str(Path(__file__).resolve().parents[1] / "config.json"))
+    parser.add_argument('--smoke-test', action='store_true', help='Open the GUI, record startup state, and close without analysis')
     args = parser.parse_args()
     root = tk.Tk()
     try:
         app = ResearchApp(root, args.config)
+        if args.smoke_test:
+            def check_startup():
+                if app.controller.busy or app.task_callback:
+                    root.after(100, check_startup)
+                    return
+                from .util import write_json
+                import sys
+                write_json(Path(args.config).resolve().parent/'gui-startup-smoke.json', {
+                    'configured': app.cfg is not None, 'executable': sys.executable,
+                    'config': str(app.config_path), 'tk_version': root.tk.call('info','patchlevel'),
+                    'geometry': root.winfo_geometry(), 'automatic_analysis': False,
+                    'message': app.activity.get()})
+                app.close()
+            root.after(200, check_startup)
         root.mainloop()
     except Exception as error:
         messagebox.showerror("연구 자동화", safe_error(error), parent=root)
         root.destroy()
         return 1
-    return 0
+    return 0 if not args.smoke_test or app.cfg is not None else 1
 
 
 if __name__ == "__main__":

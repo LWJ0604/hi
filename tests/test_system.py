@@ -207,7 +207,7 @@ class PipelineTests(Base):
         self.cfg = self.configure()
         folder = self.cfg.paths["inbox"] / "vps 측정" / "원본"
         folder.mkdir(parents=True)
-        (folder / "ReS2_IVG_parameters_center fold.csv").write_text("parameter,value\nalpha,1\n")
+        (folder / "ReS2_IVG_parameters_center fold.csv").write_text("parameter,value\nalpha,1\n", encoding="utf-8")
         pd.DataFrame({"DrainV (V)": np.linspace(-1, 1, 21), "DrainI (A)": np.linspace(-1e-9, 1e-9, 21)}).to_excel(folder / "실측.XLSX", index=False)
         result = scan(self.cfg)
         self.assertEqual(result["counts"]["completed"], 1)
@@ -220,14 +220,14 @@ class PipelineTests(Base):
         self.sample()
         folder = self.cfg.paths["inbox"] / "하위"
         folder.mkdir()
-        (folder / "ReS2_IVD_PARAMETERS_drain fold.CSV").write_text("bad data")
+        (folder / "ReS2_IVD_PARAMETERS_drain fold.CSV").write_text("bad data", encoding="utf-8")
         result = scan(self.cfg)
         self.assertEqual(result["counts"]["completed"], 1)
         self.assertEqual(result["counts"]["failed"], 0)
 
     def test_previously_failed_analysis_csv_is_no_longer_retried(self):
         self.sample()
-        (self.cfg.paths["inbox"] / "ReS2_IVG_parameters_center fold.csv").write_text("parameter,value\nalpha,1\n")
+        (self.cfg.paths["inbox"] / "ReS2_IVG_parameters_center fold.csv").write_text("parameter,value\nalpha,1\n", encoding="utf-8")
         first = scan(self.cfg)
         self.assertEqual(first["counts"]["failed"], 1)
         self.data["ingest"]["exclude_globs"] = ["*parameters*.csv"]
@@ -343,7 +343,7 @@ class PipelineTests(Base):
     def test_bad_file_does_not_stop_good_file_and_retry_limit(self):
         self.sample()
         bad = self.cfg.paths["inbox"] / "broken.xlsx"
-        bad.write_text("not an excel workbook")
+        bad.write_text("not an excel workbook", encoding="utf-8")
         first = scan(self.cfg)
         self.assertEqual(first["counts"]["failed"], 1)
         self.assertEqual(first["counts"]["completed"], 1)
@@ -364,7 +364,7 @@ class PipelineTests(Base):
         self.data["ingest"]["max_bytes"] = 10
         self.cfg = self.configure()
         self.sample()
-        (self.cfg.paths["inbox"] / "~$locked.xlsx").write_text("excel lock")
+        (self.cfg.paths["inbox"] / "~$locked.xlsx").write_text("excel lock", encoding="utf-8")
         result = scan(self.cfg)
         self.assertEqual(result["counts"]["rejected"], 1)
         self.assertEqual(len(result["files"]), 1)
@@ -398,7 +398,7 @@ class PipelineTests(Base):
     def test_backup_manifest_sqlite_and_secrets_excluded(self):
         self.sample()
         scan(self.cfg)
-        (self.cfg.paths["vault"] / ".env").write_text("secret")
+        (self.cfg.paths["vault"] / ".env").write_text("secret", encoding="utf-8")
         result = backup(self.cfg)
         with zipfile.ZipFile(result["backup"]) as archive:
             manifest = json.loads(archive.read("manifest.json"))
@@ -462,7 +462,7 @@ class AITests(Base):
     def test_ai_retry_cannot_overwrite_researcher_note_or_refit(self):
         self.sample(); scan(self.cfg)
         store=Store(self.cfg); old=store.completed()[0];store.close()
-        note=Path(old['note_path']);note.write_text(note.read_text()+"\n연구자 수정 본문\n")
+        note=Path(old['note_path']);note.write_text(note.read_text(encoding="utf-8")+"\n연구자 수정 본문\n", encoding="utf-8")
         before=note.read_bytes(); result=Path(old['result_path']).read_bytes()
         with patch("research_automation.pipeline.interpret",side_effect=AssertionError("no API")),patch("research_automation.pipeline.analyze",side_effect=AssertionError("no refit")):
             with self.assertRaises(ValueError):retry_ai(self.cfg)

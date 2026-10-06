@@ -1,8 +1,6 @@
 import hashlib
 import fnmatch
 import json
-import logging
-from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
 import shutil
@@ -23,14 +21,7 @@ from .render import experiment_note, measurement_catalog, plots, vault_locations
 from .store import Store, lock
 from .util import digest, filename_hints, now, parse_filename, slug, write_json
 
-def logger(cfg):
-    log = logging.getLogger("research-automation." + str(cfg.path))
-    if not log.handlers:
-        log.setLevel(logging.INFO)
-        handler = RotatingFileHandler(cfg.paths["logs"] / "pipeline.log", maxBytes=5_000_000, backupCount=5, encoding="utf-8")
-        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-        log.addHandler(handler)
-    return log
+from .pipeline_logging import logger
 
 
 def candidates(cfg):
@@ -109,6 +100,12 @@ def process_one(source, source_hash, job_id, cfg, store, log):
         from .fet_figures import fet_figures
         additional=export_fet(curves,summary,stage,cfg)
         summary['figures'].extend(fet_figures(additional,summary,stage))
+        from .research_report import export_report
+        from .research_panels import research_panels
+        report=export_report(curves,summary,stage,cfg,additional)
+        new_figures,_=research_panels(curves,summary,stage,additional,report)
+        summary['figures'].extend(new_figures)
+        summary['report_format']='fet-research-note-2'
         phase = "publication"
         cache = cfg.paths["state"] / "ai-cache" / (job_id + ".json")
         if cache.exists():

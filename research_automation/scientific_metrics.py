@@ -32,7 +32,11 @@ def sample_at(frame,axis,target,column='id'):
             if same_segment and consecutive and eligible[i:i+2].all():hits.append(i)
     if len(hits)!=1:return unavailable('outside_coverage_or_gap_compliance_or_ambiguous','A',evaluation_voltage_v=float(target))
     i=hits[0]; value=y[i]+(y[i+1]-y[i])*(target-x[i])/(x[i+1]-x[i])
-    return {'value':float(value),'unit':'A','metric_status':'candidate','reason':'adjacent_valid_interpolation','evaluation_voltage_v':float(target),'interpolated':True,'source_points':rows(frame,[i,i+1])}
+    weight=float((target-x[i])/(x[i+1]-x[i]))
+    support=rows(frame,[i,i+1])
+    for point,k,w in zip(support,[i,i+1],[1-weight,weight]):
+        point.update({'voltage_v':float(x[k]),'signed_current_a':float(y[k]),'weight':float(w)})
+    return {'value':float(value),'unit':'A','metric_status':'candidate','reason':'adjacent_valid_interpolation','evaluation_voltage_v':float(target),'interpolated':True,'source_points':support,'interpolation_weights':[1-weight,weight]}
 
 
 def ratio_with_limit(numerator,denominator,limit):
@@ -82,6 +86,7 @@ def safe_derivative(frame,axis):
         indices=np.arange(start,end)
         if len(indices)>=3 and valid[indices].all():
             raw[indices]=np.gradient(y[indices],x[indices],edge_order=2)
+            if np.ptp(y[indices])==0:raw[indices]=0.0
             endpoint[[indices[0],indices[-1]]]=True
             parts.append(indices)
     return raw,endpoint,parts,duplicate
@@ -103,6 +108,7 @@ def transfer_observables(frame,cfg):
                 dx=x[window]-x[i]; scale=max(np.max(np.abs(y[window])),np.finfo(float).tiny)
                 coef=np.polynomial.polynomial.polyfit(dx,y[window]/scale,cfg.data['science']['gm_polynomial_order'])
                 derivative[i]=coef[1]*scale
+                if np.ptp(y[window])==0:derivative[i]=0.0
                 interior[i]=min(x[indices])+width/2<=x[i]<=max(x[indices])-width/2
         key=f"gm_local_w{width:g}_a_per_v"
         arrays[key]=derivative; arrays[f"gm_local_w{width:g}_points"]=counts

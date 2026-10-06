@@ -169,17 +169,17 @@ class OrganizationPipelineTests(Base):
             self.assertIn("device_name:", text)
             for link in re.findall(r'\[\[([^\]|]+)(?:\|[^\]]*)?\]\]', text):
                 self.assertTrue((self.cfg.paths["vault"] / link).exists(), link)
-            result = json.loads((self.cfg.paths["analysis"] / "runs" / ("v" + __version__) / entry["job_id"] / "result.json").read_text())
+            result = json.loads((self.cfg.paths["analysis"] / "runs" / ("v" + __version__) / entry["job_id"] / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(result["vault_note_relative_path"], note.relative_to(self.cfg.paths["vault"]).as_posix())
             table = pd.read_csv(self.cfg.paths["analysis"] / "runs" / ("v" + __version__) / entry["job_id"] / "normalized.csv")
             self.assertEqual(table["device_name"].unique().tolist(), [result["research_context"]["device_name"]])
             self.assertEqual(table["vd"].unique().tolist(), result["research_context"]["fixed_conditions_v"]["vd"])
         from research_automation.science_exports import catalog_path
-        catalog = catalog_path(self.cfg).read_text()
+        catalog = catalog_path(self.cfg).read_text(encoding="utf-8")
         self.assertIn("새 소자", catalog)
         self.assertIn("center-fold", catalog)
         report = weekly(self.cfg)
-        text = Path(report["report"]).read_text()
+        text = Path(report["report"]).read_text(encoding="utf-8")
         self.assertIn("Vd=3V", text)
         self.assertIn("2026-09-23", text)
         for link in re.findall(r'\[\[([^\]|]+)', text):
@@ -195,14 +195,14 @@ class OrganizationPipelineTests(Base):
         source.rename(new)
         second = scan(self.cfg)
         self.assertEqual(second["counts"]["completed"], 1)
-        self.assertIn("new device/2026-09-24", second["files"][0]["note"])
+        self.assertIn("new device/2026-09-24", Path(second["files"][0]["note"]).as_posix())
         self.assertTrue(Path(first["files"][0]["note"]).exists())
         self.assertEqual(new.read_bytes(), original)
 
     def test_ai_gets_device_context_without_source_paths(self):
         self.transfer("drain-fold/2026-09-23")
         outcome = scan(self.cfg)
-        summary = json.loads((self.cfg.paths["analysis"] / "runs" / ("v" + __version__) / outcome["files"][0]["job_id"] / "result.json").read_text())
+        summary = json.loads((self.cfg.paths["analysis"] / "runs" / ("v" + __version__) / outcome["files"][0]["job_id"] / "result.json").read_text(encoding="utf-8"))
         self.data["science"]["offline"] = False  # Mock HTTP only: legacy opt-in contract
         self.data["ai"]["enabled"] = True
         self.cfg = self.configure()

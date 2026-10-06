@@ -9,7 +9,6 @@ import math
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from .util import write_json
 
 DEFINITIONS={
  'conductance':'G = signed Id / signed Vds (직류 할선 전도도; offset 차감 없음)',
@@ -118,18 +117,27 @@ def export_fet(curves, summary, directory, cfg):
                 extra=_on_off(group,data,settings) if key=='on_off_ratio' else None
                 extra=extra or {'value':None,'metric_status':'unavailable','reason':why}
                 extra.update({'group_id':group['group_id'],'parameter':key});extractions.append(extra)
-    output={'schema_version':1,'scope':'additional FET observables; legacy calculations/QC/confirmation unchanged',
+    output={'schema_version':2,'scope':'additional FET observables; legacy calculations/QC/confirmation unchanged',
             'source_sha256':summary.get('source_sha256'),'legacy_job_id':summary.get('job_id'),
             'definitions':DEFINITIONS,'points':records,'extractions':extractions,'legacy_metric_coverage':coverage,
             'settings_source':str(settings_path) if settings_path else None,
             'settings':settings,'method_arrays':method_arrays,'contact_correction':False,'offset_subtraction':False,'repeat_averaging':False}
-    write_json(Path(directory)/'fet_parameters.json',output)
+    from .metric_contract import annotate_fet_contract
+    annotate_fet_contract(output,curves,summary,cfg,directory)
+    from .metric_store import write_metric_json,EVIDENCE_FILE
+    stored,store=write_metric_json(Path(directory)/'fet_parameters.json',output)
     cols=['group_id','parameter','axis','evaluation_voltage_v','fixed_voltages_v','gate_block_id','direction','value',
-          'candidate_value_assuming_si','unit','metric_status','reason','definition','source_row','source_x_cell','source_id_cell','source_sha256']
-    frame=pd.DataFrame(records,columns=cols)
-    if len(frame):frame['fixed_voltages_v']=frame['fixed_voltages_v'].map(lambda x:json.dumps(x,ensure_ascii=False))
+          'candidate_value_assuming_si','unit','metric_status','reason','definition','source_row','source_x_cell','source_id_cell','source_sha256',
+          'availability','extraction_method','bias_condition','provenance']
+    def serialized(items,columns=None):
+        frame=pd.DataFrame(items,columns=columns)
+        for column in frame:
+            frame[column]=frame[column].map(lambda value:json.dumps(value,ensure_ascii=False,allow_nan=False) if isinstance(value,(dict,list)) else value)
+        return frame
+    csv_points=[{**store.encoded_record(ref),'metric_ref':ref['$ref'],'evidence_document':EVIDENCE_FILE} for ref in stored['points']]
+    frame=serialized(csv_points,cols+['metric_ref','evidence_document'])
     frame.to_csv(Path(directory)/'fet_parameters.csv',index=False,encoding='utf-8-sig')
-    pd.DataFrame(extractions).to_csv(Path(directory)/'fet_summary.csv',index=False,encoding='utf-8-sig')
+    serialized([{**store.encoded_record(ref),'metric_ref':ref['$ref'],'evidence_document':EVIDENCE_FILE} for ref in stored['extractions']]).to_csv(Path(directory)/'fet_summary.csv',index=False,encoding='utf-8-sig')
     return output
 
 

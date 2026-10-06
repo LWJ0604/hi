@@ -20,3 +20,5 @@ actual-validation*/
 synthetic-validation*/
 *.sqlite3
 *.log
+qa-layout/
+qa-runtime/

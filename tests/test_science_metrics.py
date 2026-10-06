@@ -8,8 +8,11 @@ from research_automation.scientific_metrics import rectification_series,ratio_wi
 
 class ObservableTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();p=Path(self.temp.name)/'c.json';p.write_text(json.dumps(copy.deepcopy(DEFAULT)));self.cfg=Config(p)
-    def tearDown(self):self.temp.cleanup()
+        self.temp=tempfile.TemporaryDirectory();p=Path(self.temp.name)/'c.json';p.write_text(json.dumps(copy.deepcopy(DEFAULT)), encoding="utf-8");self.cfg=Config(p)
+    def tearDown(self):
+        from test_cleanup import close_test_logs
+        close_test_logs(self.temp.name)
+        self.temp.cleanup()
     def frame(self,x,y,axis='vg'):
         return pd.DataFrame({axis:x,'id':y,'source_row':np.arange(len(x))+3,'acquisition_order':np.arange(len(x)),
             'segment_id':0,'metric_eligible':True,**({'vd':2.} if axis=='vg' else {'vg':1.})})

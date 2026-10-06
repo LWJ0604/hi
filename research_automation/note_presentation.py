@@ -257,7 +257,8 @@ def details(summary, assets, directory):
     lines+=fold('수식·실제 피팅·계수와 잔차 정의',fits)
     fet_path=Path(directory)/'fet_parameters.json'
     if fet_path.is_file():
-        report=json.loads(fet_path.read_text(encoding='utf-8'))
+        from .metric_store import read_metric_json
+        report=read_metric_json(fet_path)
         tab=['기존 gm·RR·QC·단위 확인·Vth/SS 필드는 바꾸지 않았습니다. 아래는 추가 관측량과 탐색용 추출입니다.',
              'G=Id/Vds는 직류 할선 전도도이고, gds=dId/dVds는 국소 출력 기울기입니다. R=Vds/Id와 rd=1/gds도 서로 다르며 접촉저항이 아닙니다.',
              'YFM: Y=|Id|/√|gm|의 선형 후보 구간에서 x 절편을 구하고, 점진 채널 선형 모델의 signed Vds/2를 빼 Vth 후보를 표시합니다. 보정 전 절편도 JSON에 보존합니다. YFM 잔차는 관측 Y − 선형 모델 Y이며 회색 영역은 피팅 구간, 회색 ×는 구간 밖 점입니다. 자동 구간은 측정 |Id| 변화폭의 20–80% 중 가장 긴 연속 구간으로 고르며, 가장 좋은 R²를 찾아 고르지 않습니다.',
@@ -314,6 +315,9 @@ def details(summary, assets, directory):
 
 
 def render_note(summary, assets, directory, figure=None):
+    if (Path(directory)/'research_report.json').is_file() and (Path(directory)/'figure2_manifest.json').is_file():
+        from .fet_research_note import render_research_note
+        return render_research_note(summary,assets,directory)
     g=representative(summary); axis=(g or {}).get('axis','vd')
     items,assumptions=key_metrics(summary,directory)
     held=any(x.get('units_review_required',True) for x in summary.get('groups',[]))

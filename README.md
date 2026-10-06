@@ -1,18 +1,22 @@
-# 연구 측정 자동화 1.5.0
+# 연구 측정 자동화 1.6.0
 
-**다운로드:** [기존 설치 업데이트 ZIP](downloads/research-automation-update-1.5.0.zip) · [Windows GUI 설치 ZIP](downloads/research-automation-gui-windows-v1.5.0.zip). 파일 페이지의 **Download raw file** 버튼으로 받으세요. [설치 안내](GITHUB-DOWNLOAD.md)
+**다운로드:** [v1.6.0 GitHub Release](https://github.com/LWJ0604/hi/releases/tag/v1.6.0)에서 **research-automation-windows-v1.6.0.zip**을 받으세요. Python/Tcl/Tk와 의존성을 포함합니다. 짧은 경로(예: `C:\ResearchQA`)에 풀고 **Start-Local-QA.cmd**를 실행하세요. 기본 입력·분석·노트·DB는 패키지 안의 격리된 `qa-runtime`에 저장됩니다. 자동 감시는 직접 시작하기 전까지 실행되지 않습니다. [실행·업데이트 안내](UPDATE-1.6.0.md)
 
-**1.5.0:** 연구 질문·조건·현재 판단·대표 그림을 먼저 보여주는 노트와 보존형 **선택 노트 미리보기**를 추가했습니다. G/gds·gm/Vds·정규화 gm·YFM Vth 후보·SS min/average·이동도 조건 및 그림을 별도 출력합니다. **업데이트는 [UPDATE-1.5.0.md](UPDATE-1.5.0.md)**, 검증 범위는 [v1.5.0 검증 보고](docs/검증결과-v1.5.0.md)를 참고하세요.
+**1.6.0:** Windows SQLite 백업과 로그 정리를 수정했습니다. 선택 결과의 조건·핵심 수치·다음 확인과 RR/gm 계산 근거를 먼저 보여줍니다. 연구노트 형식 2, Figure 2 패널, 모든 지표의 단위·상태·출처를 제공합니다. 반복 계산 근거는 손실 없이 공용 테이블에 저장하는 디스크 schema 3으로 정규화합니다. 기존 schema 1/2와 연구자 메모·이전 결과는 보존합니다. [노트·저장 형식](RESEARCH-NOTE-V2-LOCAL.md), [Windows 검증 범위](LOCAL-WINDOWS-REVIEW.md)
+
+**이전 1.5.0:** 보존형 선택 노트 미리보기와 추가 FET 후보를 도입했습니다. [이전 업데이트 안내](UPDATE-1.5.0.md)
 
 **이전 1.4.1:** Windows의 음수 부호 깨짐을 수정했습니다. 이미 분석을 마쳤다면 GUI의 **선택 그래프 갱신** 또는 `Refresh-Plots.cmd`로 수치 재분석 없이 새 그림을 내보내세요. **전체 결과 점검** 또는 `Audit-Results.cmd`는 로컬 점검 보고와 `result-audit.zip`을 만듭니다. 기존 결과/노트는 보존합니다. [수정·점검 안내](UPDATE-1.4.1.md)와 [1.4.1 검증](docs/검증결과-v1.4.1.md)을 참고하세요.
 
-기존 1.3.1 GUI와 Keithley → Python 분석 → Obsidian 흐름을 유지하면서, 메타데이터 확인과 비교 가능한 지표 추출을 추가했습니다. **기존 설치는 [UPDATE-1.5.0.md](UPDATE-1.5.0.md)**를 따르세요. 실제 테스트와 한계는 [검증 보고](docs/검증결과-v1.4.0.md), 계산 기준은 [과학 분석 설정](docs/과학분석-v1.4.0.md)에 있습니다.
+기존 1.3.1 GUI와 Keithley → Python 분석 → Obsidian 흐름을 유지하면서, 메타데이터 확인과 비교 가능한 지표 추출을 추가했습니다. **기존 설치는 [UPDATE-1.6.0.md](UPDATE-1.6.0.md)**를 따르세요. 실제 테스트와 한계는 [검증 보고](docs/검증결과-v1.4.0.md), 계산 기준은 [과학 분석 설정](docs/과학분석-v1.4.0.md)에 있습니다.
 
 `withlight`, `with light`, `with_light`, `light`는 입사광 **light**입니다. `dark`는 dark, 표기가 없으면 **dark 기본값(미확인)**, 출처가 다르면 **conflict**입니다. 기본값·파일명 추정은 사용자 확인과 구별합니다.
 
-원본 파일은 수정·이동하지 않고 SHA-256을 기록합니다. 새 노트와 산출물은 `Experiments/v1.5.0`, `Attachments/v1.5.0` 아래에 저장합니다. 기존 노트의 연구자 본문과 과거 결과를 덮어쓰지 않습니다. 외부 AI 호출은 `science.offline: true`로 차단하며 자동 요약은 규칙 기반입니다.
+원본 파일은 수정·이동하지 않고 SHA-256을 기록합니다. 새 노트와 산출물은 `Experiments/v1.6.0`, `Attachments/v1.6.0` 아래에 저장합니다. 기존 노트의 연구자 본문과 과거 결과를 덮어쓰지 않습니다. 외부 AI 호출은 `science.offline: true`로 차단하며 자동 요약은 규칙 기반입니다.
 
 ## Windows 사용
+
+포터블 릴리스는 Python 설치나 Setup.cmd 없이 **Start-Local-QA.cmd**로 실행합니다. 아래 Setup 절차는 소스 설치에 해당합니다.
 
 1. Python 3.12 64비트와 Tcl/Tk를 설치합니다. 이번 검증은 Python 3.12에서 했습니다. 3.14에서는 현재 고정된 의존성의 호환성을 별도로 확인해야 합니다.
 2. 프로그램 ZIP을 Vault 밖의 폴더에 풀고 `Setup.cmd`를 실행합니다. 설치는 패키지를 받기 위해 인터넷이 필요합니다. 합성 예제는 실측 Inbox에 자동 생성하지 않습니다.
@@ -50,13 +54,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Pytho
 
 ```text
 analysis/raw/<job>/                          원본 보관 사본
-analysis/runs/v1.5.0/<job>/                   새 분석 결과
-analysis/failures/v1.5.0/<job>_<time>.json     실패 단계와 미계산 상태
-analysis/comparisons/v1.5.0/<time>/           비교 후보/가능 여부
-vault/Experiments/v1.5.0/<소자>/<날짜>/<조건>/  새 연구노트
-vault/Attachments/v1.5.0/<소자>/<날짜>/<조건>/  그래프·CSV·JSON
+analysis/runs/v1.6.0/<job>/                   새 분석 결과
+analysis/failures/v1.6.0/<job>_<time>.json     실패 단계와 미계산 상태
+analysis/comparisons/v1.6.0/<time>/           비교 후보/가능 여부
+vault/Experiments/v1.6.0/<소자>/<날짜>/<조건>/  새 연구노트
+vault/Attachments/v1.6.0/<소자>/<날짜>/<조건>/  그래프·CSV·JSON
 vault/ResearchAutomation/metadata-overrides.json  확인값·이유·수정 이력
-vault/Weekly/v1.5.0/                         새 주간 보고
+vault/Weekly/v1.6.0/                         새 주간 보고
 state/jobs.sqlite3                          작업 기록
 logs/pipeline.log                           실행/오류 로그
 ```
@@ -85,9 +89,9 @@ logs/pipeline.log                           실행/오류 로그
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-GUI 테스트는 화면과 Tcl/Tk가 필요합니다. 제공 검증은 Linux/Python 3.12 + 가상 X11 화면에서 수행했습니다. Windows 설치기·작업 스케줄러·두 실제 Vault는 해당 PC에서 아직 실행하지 않았습니다. 첨부 XLS 세 개는 복사본으로 검증했으며, 감사에 언급된 `id-Vg-total.xlsx`와 특정 작업의 원본은 제공되지 않아 별도 합성 fixture로 해당 결함을 검증했습니다.
+Windows/Python 3.12에서 최종 기능 변경까지 184개 테스트를 통과했습니다. 버전 갱신 후 같은 전체 회귀를 다시 실행합니다. 실제 Tk 위젯·레이아웃·작업 스레드와 CMD 런처를 자동 검증했으며, 픽셀 스크린샷·실제 Obsidian·Explorer 더블클릭 설치·작업 스케줄러는 검증하지 않았습니다. 정확한 릴리스 커밋의 Windows/Ubuntu 결과는 [Actions](https://github.com/LWJ0604/hi/actions)에서 확인하세요.
 
 
-## v1.5.0 노트 미리보기와 추가 FET 지표
+## v1.6.0 노트 미리보기와 추가 FET 지표
 
 기존 결과를 보존하면서 **선택 노트 미리보기**로 새 읽기 형식을 확인할 수 있습니다. G(Vg), gm/Vds, 정규화 gm, RR, YFM Vth 후보, SS min/average와 해당 그림을 제공합니다. **FET 추출 조건**에서 geometry·평가 구간·가정 출처를 확인합니다. 설치·보존·후보 지표의 조건은 [UPDATE-1.5.0.md](UPDATE-1.5.0.md)를 참고하세요.

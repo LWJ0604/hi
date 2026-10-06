@@ -1,4 +1,5 @@
 import hashlib
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -81,8 +82,10 @@ def backup(cfg):
             import sqlite3
             store = Store(cfg)
             try:
-                with sqlite3.connect(db_copy) as target:
+                with closing(sqlite3.connect(db_copy)) as target:
                     store.db.backup(target)
+                    if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                        raise RuntimeError("Backup database integrity check failed")
             finally:
                 store.close()
             archive_path = Path(temporary) / "backup.zip"
@@ -108,7 +111,14 @@ def backup(cfg):
                     archive.writestr(name, content)
                     manifest["files"].append({"path": name, "bytes": len(content), "sha256": hashlib.sha256(content).hexdigest()})
                 archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
-            os.replace(archive_path, final)
-        checksum = digest(final)
-        atomic_text(str(final) + ".sha256", checksum + "  " + final.name + "\n")
+            checksum = digest(archive_path)
+            checksum_path = Path(temporary) / "backup.sha256"
+            atomic_text(checksum_path, checksum + "  " + final.name + "\n")
+            try:
+                os.replace(archive_path, final)
+                os.replace(checksum_path, str(final) + ".sha256")
+            except OSError:
+                final.unlink(missing_ok=True)
+                Path(str(final) + ".sha256").unlink(missing_ok=True)
+                raise
         return {"backup": str(final), "sha256": checksum, "files": len(manifest["files"])}

@@ -57,14 +57,14 @@ class SettingsTests(Base):
 
     def test_missing_config_uses_template(self):
         target = self.root / "new-config.json"
-        (self.root / "config.example.json").write_text(json.dumps(self.data))
+        (self.root / "config.example.json").write_text(json.dumps(self.data), encoding="utf-8")
         cfg = ensure_config(target)
         self.assertEqual(cfg.data["qc"], self.data["qc"])
         self.assertFalse(cfg.data["ai"]["enabled"])
 
     def test_note_uri_handles_korean_spaces_and_hash(self):
         note = self.root / "연구 노트 #1.md"
-        note.write_text("test")
+        note.write_text("test", encoding="utf-8")
         uri = note_uri(note)
         from urllib.parse import parse_qs, urlparse
         self.assertEqual(parse_qs(urlparse(uri).query)["path"], [str(note)])
@@ -81,6 +81,7 @@ class ControllerTests(Base):
             try:
                 output.append(controller.events.get_nowait())
             except queue.Empty:
+                controller.close_resources()
                 return output
 
     def test_scan_emits_result_context_from_real_pipeline(self):

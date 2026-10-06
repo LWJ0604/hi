@@ -38,14 +38,24 @@ def preview_notes(cfg, sources=None):
             curves=pd.read_csv(stage/'curves.csv',float_precision='round_trip')
             preserved={}
             for p in result.parent.iterdir():
+                if p.is_file() and p.name.startswith('figure2_') and p.suffix=='.png':
+                    shutil.copy2(p,stage/('prior_'+p.name))
+                    preserved[p.name]='prior_'+p.name
                 if p.is_file() and p.suffix in ('.csv','.json'):
-                    name='prior_'+p.name if p.name.startswith('fet_') else p.name
+                    name='prior_'+p.name if p.name.startswith('fet_') or p.name in ('research_report.json','research_metrics.csv','figure2_manifest.json','metric_evidence.json') else p.name
                     if name!=p.name:shutil.copy2(p,stage/name)
                     preserved[p.name]=name
+            from .metric_store import compact_legacy_copies
+            historical_storage=compact_legacy_copies(stage,preserved)
             from .fet_parameters import export_fet
             from .fet_figures import fet_figures
             report=export_fet(curves,summary,stage,cfg)
             figures=evidence_figures(curves,summary,stage)+parameter_figures(curves,summary,stage)+fet_figures(report,summary,stage)
+            from .research_report import export_report
+            from .research_panels import research_panels
+            evidence=export_report(curves,summary,stage,cfg,report)
+            new_figures,_=research_panels(curves,summary,stage,report,evidence)
+            figures.extend(new_figures)
             # The copied result.json stays byte-identical, including prior figure list/version/paths.
             summary['figures']=figures+original.get('figures',[])
             assets=f'Attachments/v{__version__}/NotePreviews/{stamp}/{job["id"]}'
@@ -54,7 +64,8 @@ def preview_notes(cfg, sources=None):
             manifest={'presentation_version':__version__,'presentation_code_sha256':code_fingerprint(),
                       'numeric_analysis_version':original.get('version'),'source':job['source'],
                       'cached_result_sha256':digest(result),'cached_files_sha256':{p.name:digest(p) for p in result.parent.iterdir() if p.is_file() and p.suffix in ('.json','.csv')},
-                      'preserved_cached_files':preserved,'new_extraction_files':['fet_parameters.json','fet_parameters.csv','fet_summary.csv'],
+                      'preserved_cached_files':preserved,'legacy_copy_storage_normalization':historical_storage,
+                      'new_extraction_files':['fet_parameters.json','fet_parameters.csv','fet_summary.csv','research_report.json','research_metrics.csv','metric_evidence.json','figure2_manifest.json'],
                       'original_note':original.get('vault_note_relative_path'),'note':rel,'figures':figures,
                       'representative_rule':'first acquisition block/direction, nearest fixed voltage to zero, source order tie-break',
                       'parser_rerun':False,'models_refit':False,'qc_changed':False,'metadata_changed':False,'api_calls':0}

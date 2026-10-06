@@ -24,7 +24,7 @@ def metadata_recompute(cfg,result_path,changed_fields):
     if not source.is_file():raise ValueError('현재 PC의 Inbox에 선택 원본을 찾지 못했습니다. 경로를 확인하세요. 다른 PC의 절대 스냅샷 경로는 사용하지 않습니다.')
     if digest(source)!=prior['source_sha256']:raise ValueError('원본 내용이 바뀌었습니다. 선택 원본을 새로 분석하세요.')
     snapshot_path=Path(result_path).parent/'config_snapshot.json'
-    saved=json.loads(snapshot_path.read_text()) if snapshot_path.exists() else {}
+    saved=json.loads(snapshot_path.read_text(encoding='utf-8-sig')) if snapshot_path.exists() else {}
     same_science=all(saved.get(k)==cfg.data[k] for k in ('analysis','columns','ingest','qc','science'))
     if prior.get('schema_version',0)<4 or prior.get('code_sha256')!=code_fingerprint() or not same_science:
         from .pipeline import scan
@@ -65,6 +65,17 @@ def metadata_recompute(cfg,result_path,changed_fields):
                 curves=pd.read_csv(stage/'curves.csv',float_precision='round_trip')
                 summary['figures']=plots(curves,summary,stage)
             export_metrics(summary,stage)
+            # Rebuild dependency-labelled supplemental evidence after any review.
+            # This does not refit legacy models or confirm independent conditions.
+            curves=pd.read_csv(stage/'curves.csv',float_precision='round_trip')
+            from .fet_parameters import export_fet
+            from .research_report import export_report
+            from .research_panels import research_panels
+            additional=export_fet(curves,summary,stage,cfg)
+            report=export_report(curves,summary,stage,cfg,additional)
+            new_figures,_=research_panels(curves,summary,stage,additional,report)
+            summary['figures']=list(dict.fromkeys([*summary.get('figures',[]),*new_figures]))
+            summary['report_format']='fet-research-note-2'
             write_json(stage/'result.json',summary);write_json(stage/'config_snapshot.json',cfg.data)
             final=cfg.paths['analysis']/'runs'/('v'+__version__)/job
             suffix=0

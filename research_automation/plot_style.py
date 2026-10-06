@@ -24,6 +24,9 @@ RC = {
     # Some Windows font installations lack U+2212. This covers ScalarFormatter,
     # EngFormatter and colorbar ticks without changing signed measurement values.
     "axes.unicode_minus": False,
+    # LogFormatterMathtext also needs a font with the mathematical minus.
+    # Keep Korean labels in the sans-serif stack, but use bundled DejaVu for math.
+    "mathtext.rm": "DejaVu Sans", "mathtext.fontset": "dejavusans",
     "xtick.direction": "in", "ytick.direction": "in",
     "xtick.top": True, "ytick.right": True,
     "xtick.major.width": 1.2, "ytick.major.width": 1.2,

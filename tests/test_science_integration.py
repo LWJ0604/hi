@@ -16,8 +16,11 @@ class ResearchIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name);options=copy.deepcopy(DEFAULT)
         options['ingest']['stable_seconds']=.01
-        (self.root/'config.json').write_text(json.dumps(options));self.cfg=Config(self.root/'config.json');self.cfg.ensure_dirs()
-    def tearDown(self):self.temp.cleanup()
+        (self.root/'config.json').write_text(json.dumps(options), encoding="utf-8");self.cfg=Config(self.root/'config.json');self.cfg.ensure_dirs()
+    def tearDown(self):
+        from test_cleanup import close_test_logs
+        close_test_logs(self.temp.name)
+        self.temp.cleanup()
     def measurement(self,name='Id-Vd_dark.csv'):
         path=self.cfg.paths['inbox']/'drain-fold/2026-09-23'/name;path.parent.mkdir(parents=True,exist_ok=True)
         x=np.linspace(-2,2,41)
@@ -26,8 +29,8 @@ class ResearchIntegrationTests(unittest.TestCase):
     def test_versioned_notes_links_rr_voltage_and_metadata_not_pass(self):
         source=self.measurement();before=source.read_bytes();result=scan(self.cfg)
         self.assertEqual(result['counts']['completed'],1)
-        entry=result['files'][0];summary=json.loads(Path(entry['result_path']).read_text());note=Path(entry['note']).read_text()
-        self.assertIn(f'Experiments/v{__version__}/',entry['note']);self.assertIn('평가 \\|Vd\\|',note)
+        entry=result['files'][0];summary=json.loads(Path(entry['result_path']).read_text(encoding="utf-8"));note=Path(entry['note']).read_text(encoding="utf-8")
+        self.assertIn(f'Experiments/v{__version__}/',Path(entry['note']).as_posix());self.assertIn('평가 \\|Vd\\|',note)
         self.assertNotEqual(summary['research_context']['metadata_status'],'confirmed')
         metrics=pd.read_csv(Path(entry['result_path']).parent/'observable_metrics.csv')
         rr=metrics[metrics['metric']=='rectification_ratio'];self.assertEqual(rr['evaluation_abs_vd_v'].tolist(),[.5,1.,1.5,2.])
@@ -37,12 +40,12 @@ class ResearchIntegrationTests(unittest.TestCase):
     def test_override_reuses_numeric_values_preserves_user_body_and_other_files(self):
         one=self.measurement();self.measurement('Id-Vd_withlight.csv')
         result=scan(self.cfg);entry=next(e for e in result['files'] if e['source'].endswith('dark.csv'))
-        note=Path(entry['note']);note.write_text(note.read_text()+'\n연구자 직접 쓴 판단\n');before=note.read_bytes()
-        rp=Path(entry['result_path']);summary=json.loads(rp.read_text());hash_before=hashlib.sha256(one.read_bytes()).hexdigest()
+        note=Path(entry['note']);note.write_text(note.read_text(encoding="utf-8")+'\n연구자 직접 쓴 판단\n', encoding="utf-8");before=note.read_bytes()
+        rp=Path(entry['result_path']);summary=json.loads(rp.read_text(encoding="utf-8"));hash_before=hashlib.sha256(one.read_bytes()).hexdigest()
         save_override(self.cfg,summary['source_relative_path'],summary['source_sha256'],{'measurement_date':'2026-09-23'},'사용자가 실제 측정일 확인; 시간은 미상')
         with patch('research_automation.pipeline.analyze',side_effect=AssertionError('metadata update must not refit')):
             updated=metadata_recompute(self.cfg,rp,['measurement_date'])
-        new=json.loads(Path(updated['result_path']).read_text());self.assertTrue(new['recalculation']['reused_numeric_analysis'])
+        new=json.loads(Path(updated['result_path']).read_text(encoding="utf-8"));self.assertTrue(new['recalculation']['reused_numeric_analysis'])
         self.assertEqual(note.read_bytes(),before);self.assertTrue(rp.exists())
         self.assertEqual(hashlib.sha256(one.read_bytes()).hexdigest(),hash_before)
         self.assertEqual(new['research_context']['fields']['measurement_date']['status'],'confirmed')
@@ -64,30 +67,30 @@ class ResearchIntegrationTests(unittest.TestCase):
         with patch('research_automation.ai.httpx.Client',side_effect=AssertionError('external HTTP forbidden')):
             first=scan(self.cfg);second=scan(self.cfg)
         self.assertEqual(second['counts']['unchanged'],1)
-        self.assertEqual(json.loads(Path(first['files'][0]['result_path']).read_text())['interpretation']['status'],'disabled')
+        self.assertEqual(json.loads(Path(first['files'][0]['result_path']).read_text(encoding="utf-8"))['interpretation']['status'],'disabled')
     def test_units_confirmation_restores_held_metrics_without_refit(self):
         source=self.measurement()
-        source.write_text(source.read_text().replace('DrainV (V)','DrainV').replace('DrainI (A)','DrainI').replace('GateV (V)','GateV'))
-        entry=scan(self.cfg)['files'][0];rp=Path(entry['result_path']);before=json.loads(rp.read_text())
+        source.write_text(source.read_text(encoding="utf-8").replace('DrainV (V)','DrainV').replace('DrainI (A)','DrainI').replace('GateV (V)','GateV'), encoding="utf-8")
+        entry=scan(self.cfg)['files'][0];rp=Path(entry['result_path']);before=json.loads(rp.read_text(encoding="utf-8"))
         self.assertIsNone(before['groups'][0]['rr_series'][1]['value'])
         save_override(self.cfg,entry['source'],before['source_sha256'],{'measurement_date':'2026-09-23'},'실제 측정일 확인, 단위는 아직 미확인')
         with patch('research_automation.pipeline.analyze',side_effect=AssertionError('date confirmation must preserve unit-held numeric candidates')):
             date_update=metadata_recompute(self.cfg,rp,['measurement_date'])
-        reviewed=json.loads(Path(date_update['result_path']).read_text())
+        reviewed=json.loads(Path(date_update['result_path']).read_text(encoding="utf-8"))
         self.assertEqual(reviewed['groups'],before['groups'])
         rp=Path(date_update['result_path'])
         save_override(self.cfg,entry['source'],before['source_sha256'],{'units_confirmed':True},'장비 내보내기 전압 V, 전류 A를 확인함')
         with patch('research_automation.pipeline.analyze',side_effect=AssertionError('unit confirmation must reuse numeric values')):
             update=metadata_recompute(self.cfg,rp,['units_confirmed'])
-        after=json.loads(Path(update['result_path']).read_text())
+        after=json.loads(Path(update['result_path']).read_text(encoding="utf-8"))
         self.assertAlmostEqual(after['groups'][0]['rr_series'][1]['value'],.2)
         self.assertFalse(after['groups'][0]['units_review_required'])
         self.assertEqual(before['groups'][0]['fits'],after['groups'][0]['fits'])
     def test_parse_failure_has_separate_diagnostic_without_zero_metrics(self):
-        source=self.cfg.paths['inbox']/'parameters.csv';source.write_text('sample,result\nA,1\n')
+        source=self.cfg.paths['inbox']/'parameters.csv';source.write_text('sample,result\nA,1\n', encoding="utf-8")
         entry=scan(self.cfg)['files'][0]
         self.assertEqual(entry['status'],'failed')
-        detail=json.loads(Path(entry['diagnostic_path']).read_text())
+        detail=json.loads(Path(entry['diagnostic_path']).read_text(encoding="utf-8"))
         self.assertEqual(detail['parse_status'],'failed')
         self.assertEqual(detail['metric_status'],'unavailable')
         self.assertEqual(detail['model_status'],'not_run')

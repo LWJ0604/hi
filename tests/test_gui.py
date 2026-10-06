@@ -62,6 +62,22 @@ class GuiTests(Base):
         self.assertTrue(self.app.key_entry.cget("show"))
         self.assertEqual(self.app.api_key.get(), "")
 
+    def test_evidence_panel_reads_selected_result_and_preserves_files(self):
+        self.sample(); self.app._save_then('scan'); self.wait_idle()
+        selected = self.app.tree.get_children()[0]
+        self.app.tree.selection_set(selected); self.app._select()
+        row=self.app.rows[selected]
+        result=Path(row['result_path']); note=Path(row['note_path'])
+        before=(result.read_bytes(), note.read_bytes())
+        self.app._show_evidence(); self.pump()
+        windows=[w for w in self.root_window.winfo_children() if isinstance(w,tk.Toplevel)]
+        self.assertEqual(len(windows),1)
+        listing=next(w for w in windows[0].winfo_children() if isinstance(w,tk.Listbox))
+        self.assertGreater(listing.size(),0)
+        self.assertIn('다음 확인',self.app.details.get('1.0','end'))
+        windows[0].destroy()
+        self.assertEqual((result.read_bytes(),note.read_bytes()),before)
+
     def test_settings_are_saved_using_gui_controls(self):
         self.app.ai_enabled.set(True)
         self.app._save_then(None)
@@ -131,9 +147,6 @@ class GuiTests(Base):
         self.assertIn('실행하지 않습니다',self.app.activity.get())
 
 
-if __name__ == "__main__":
-    unittest.main()
-
     def test_note_preview_and_fet_settings_controls_preserve_prior_note(self):
         self.sample();self.app._save_then('scan');self.wait_idle()
         selected=self.app.tree.get_children()[0];self.app.tree.selection_set(selected);self.app._select()
@@ -146,3 +159,70 @@ if __name__ == "__main__":
         dialogs=[widget for widget in self.root_window.winfo_children() if isinstance(widget,tk.Toplevel)]
         self.assertTrue(any('FET 추출 조건' in dialog.title() for dialog in dialogs))
         for dialog in dialogs:dialog.destroy()
+
+    def test_metadata_rejected_update_reports_saved_override_without_success(self):
+        import copy, hashlib, json
+        from research_automation.config import Config
+        from research_automation.result_review import read_jobs
+        from research_automation.review_recompute import metadata_recompute
+        from tkinter import ttk
+        source=self.sample(); self.app._save_then('scan'); self.wait_idle()
+        selected=self.app.tree.get_children()[0]; self.app.tree.selection_set(selected)
+        row=self.app.rows[selected]; old_result=Path(row['result_path']).read_bytes()
+        old_note=Path(row['note_path']).read_bytes(); old_jobs=read_jobs(self.app.cfg)
+        source_hash=hashlib.sha256(source.read_bytes()).hexdigest()
+        data=copy.deepcopy(self.app.cfg.data); data['ingest']['max_bytes']=1
+        self.path.write_text(json.dumps(data),encoding='utf-8'); self.app._use_config(Config(self.path))
+        self.app._review_metadata(); self.pump()
+        dialog=next(w for w in self.root_window.winfo_children() if isinstance(w,tk.Toplevel))
+        tabs=next(w for w in dialog.winfo_children() if isinstance(w,ttk.Notebook))
+        panel=dialog.nametowidget(tabs.tabs()[0])
+        entries=[w for w in panel.winfo_children() if isinstance(w,ttk.Entry)]
+        entries[0].delete(0,'end'); entries[0].insert(0,'light')
+        entries[1].insert(0,'synthetic QA confirmation only')
+        button=next(w for w in panel.winfo_children() if isinstance(w,ttk.Button))
+        actual=[]
+        def record(*args,**kwargs):
+            result=metadata_recompute(*args,**kwargs); actual.append(result); return result
+        with patch('research_automation.review_recompute.metadata_recompute',side_effect=record):
+            button.invoke(); self.wait_idle()
+        self.assertEqual(actual[0]['counts']['completed'],0)
+        self.assertEqual(actual[0]['counts']['rejected'],1)
+        self.assertIn('결과 갱신 실패/제외',self.app.activity.get())
+        self.assertIn('max_bytes',self.app.activity.get()); self.assertIn(row['source'],self.app.activity.get())
+        self.assertIn('확인 이력은 저장',self.app.activity.get())
+        self.assertTrue(dialog.winfo_exists()); dialog.destroy()
+        self.assertEqual(len(read_jobs(self.app.cfg)),len(old_jobs))
+        self.assertEqual(Path(row['result_path']).read_bytes(),old_result)
+        self.assertEqual(Path(row['note_path']).read_bytes(),old_note)
+        self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(),source_hash)
+        self.assertTrue((self.app.cfg.paths['vault']/'ResearchAutomation'/'metadata-overrides.json').is_file())
+
+    def test_close_reopen_releases_owned_log_and_db_without_closing_other_handler(self):
+        import logging
+        from research_automation.reports import backup
+        source=self.sample(); self.app._save_then('scan'); self.wait_idle()
+        owned=[handler for log,handler in self.app.controller.log_owner.handlers]
+        self.assertTrue(owned)
+        unrelated=logging.getLogger('unrelated-test-app')
+        foreign=logging.FileHandler(self.root/'foreign.log',encoding='utf-8'); unrelated.addHandler(foreign)
+        try:
+            self.app.close()
+            self.assertTrue(all(handler.stream is None for handler in owned))
+            self.assertIsNotNone(foreign.stream)
+            log=self.cfg.paths['logs']/'pipeline.log'; moved=log.with_suffix('.moved')
+            log.rename(moved); moved.rename(log)
+            db=self.cfg.paths['state']/'jobs.sqlite3'; moved_db=db.with_suffix('.moved')
+            db.rename(moved_db); moved_db.rename(db)
+            self.root_window=tk.Tk(); self.app=ResearchApp(self.root_window,self.path); self.wait_idle()
+            self.app._save_then('scan'); self.wait_idle()
+            result=backup(self.app.cfg); self.assertTrue(Path(result['backup']).is_file())
+            self.app.close(); log.rename(moved); moved.rename(log)
+            db.rename(moved_db); moved_db.rename(db)
+            self.assertIsNotNone(foreign.stream)
+        finally:
+            unrelated.removeHandler(foreign); foreign.close()
+
+
+if __name__ == "__main__":
+    unittest.main()

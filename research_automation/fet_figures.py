@@ -43,7 +43,7 @@ def fet_figures(report,summary,destination):
             axes[0].legend(fontsize=7)
             if fit:
                 axes[0].axvspan(min(p['evaluation_voltage_v'] for p in fit),max(p['evaluation_voltage_v'] for p in fit),color='gray',alpha=.08)
-                axes[1].plot([p['evaluation_voltage_v'] for p in fit],[p['y_function_sqrt_a_v']-p['y_fit_sqrt_a_v'] for p in fit],color=palette(1)[0],label='잔차 = 측정 Y − 모델 Y')
+                axes[1].plot([p['evaluation_voltage_v'] for p in fit],[p['y_function_sqrt_a_v']-p['y_fit_sqrt_a_v'] for p in fit],color=palette(1)[0],label='잔차 = 측정 Y - 모델 Y')
             format_axes(axes[1],'vg','Y residual (√(A·V))');axes[1].axhline(0,color='gray',linestyle='--')
             if fit:axes[1].legend(fontsize=7)
             ss=[p for p in arrays if p['ss_summary_used']]
