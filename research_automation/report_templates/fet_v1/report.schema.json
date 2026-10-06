@@ -1,0 +1,2395 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FET research report input v1.0.0",
+  "type": "object",
+  "properties": {
+    "report": {
+      "$ref": "#/$defs/report"
+    },
+    "device": {
+      "$ref": "#/$defs/device"
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "runs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/run"
+      }
+    },
+    "floors": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/floor"
+      }
+    },
+    "comparisons": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/comparison"
+      }
+    },
+    "figures": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/figure"
+      }
+    },
+    "modules": {
+      "type": "object",
+      "properties": {
+        "gm": {
+          "$ref": "#/$defs/module"
+        },
+        "vt": {
+          "$ref": "#/$defs/module"
+        },
+        "y_function": {
+          "$ref": "#/$defs/module"
+        },
+        "ss": {
+          "$ref": "#/$defs/module"
+        },
+        "mu_fe": {
+          "$ref": "#/$defs/module"
+        },
+        "extrema": {
+          "$ref": "#/$defs/module"
+        },
+        "on_off": {
+          "$ref": "#/$defs/module"
+        },
+        "gds": {
+          "$ref": "#/$defs/module"
+        },
+        "saturation": {
+          "$ref": "#/$defs/module"
+        },
+        "hysteresis": {
+          "$ref": "#/$defs/module"
+        },
+        "dibl": {
+          "$ref": "#/$defs/module"
+        },
+        "tlm": {
+          "$ref": "#/$defs/module"
+        },
+        "rc_ns": {
+          "$ref": "#/$defs/module"
+        },
+        "rsh_ns": {
+          "$ref": "#/$defs/module"
+        },
+        "mu_con_ns": {
+          "$ref": "#/$defs/module"
+        },
+        "polarity_current": {
+          "$ref": "#/$defs/module"
+        },
+        "rectification": {
+          "$ref": "#/$defs/module"
+        },
+        "conductance": {
+          "$ref": "#/$defs/module"
+        },
+        "conductance_asymmetry": {
+          "$ref": "#/$defs/module"
+        },
+        "gm_polarity": {
+          "$ref": "#/$defs/module"
+        },
+        "gm_normalized": {
+          "$ref": "#/$defs/module"
+        },
+        "bias_dependence": {
+          "$ref": "#/$defs/module"
+        },
+        "rr_transition": {
+          "$ref": "#/$defs/module"
+        },
+        "photoresponse": {
+          "$ref": "#/$defs/module"
+        }
+      },
+      "additionalProperties": false
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "raw_figure_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "fet_module_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "drain_module_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "raw_figure_ids",
+        "fet_module_ids",
+        "drain_module_ids"
+      ]
+    },
+    "interpretation": {
+      "type": "object",
+      "properties": {
+        "observed_fact": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "observed_evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "model_based_estimate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "model_and_assumptions": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "model_evidence_and_limits": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "unverified_hypothesis": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "discriminating_observation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "observed_fact",
+        "observed_evidence_refs",
+        "model_based_estimate",
+        "model_and_assumptions",
+        "model_evidence_and_limits",
+        "unverified_hypothesis",
+        "discriminating_observation"
+      ]
+    },
+    "next_actions": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": ""
+          },
+          "condition_and_decision": {
+            "type": "string",
+            "description": ""
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "condition_and_decision"
+        ]
+      }
+    },
+    "quality": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": ""
+              },
+              "status": {
+                "enum": [
+                  "pass",
+                  "warning",
+                  "fail",
+                  "unverified"
+                ],
+                "description": ""
+              },
+              "reason": {
+                "type": "string",
+                "description": ""
+              },
+              "affected_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": ""
+                },
+                "description": ""
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "status",
+              "reason",
+              "affected_refs"
+            ]
+          },
+          "description": ""
+        },
+        "review_summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "uncertainty_note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "checks",
+        "review_summary",
+        "uncertainty_note"
+      ]
+    },
+    "availability": {
+      "type": "object",
+      "properties": {
+        "no_measurement": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "on_hold": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "calculation_failures": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "no_measurement",
+        "on_hold",
+        "candidates",
+        "calculation_failures"
+      ]
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": ""
+          },
+          "url": {
+            "type": "string",
+            "description": ""
+          },
+          "verification_scope": {
+            "type": "string",
+            "description": ""
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "url",
+          "verification_scope"
+        ]
+      },
+      "description": ""
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "report",
+    "device",
+    "summary",
+    "sources",
+    "runs",
+    "floors",
+    "comparisons",
+    "figures",
+    "modules",
+    "layout",
+    "interpretation",
+    "next_actions",
+    "quality",
+    "availability",
+    "references"
+  ],
+  "$defs": {
+    "quantity": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "수치. 미확인/null이며 0으로 채우지 않는다."
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "원 단위"
+        },
+        "basis": {
+          "enum": [
+            "measured",
+            "assumed",
+            "derived",
+            "unknown"
+          ],
+          "description": "측정값/가정값/계산값/미확인 구분"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "definition": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "L/W는 정의한 위치와 측정 기준; Cins는 면적당 정전용량"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "basis",
+        "source_refs"
+      ]
+    },
+    "protocol": {
+      "type": "object",
+      "properties": {
+        "swept_variable": {
+          "enum": [
+            "Vg",
+            "Vbg",
+            "Vds",
+            "none",
+            "unknown"
+          ],
+          "description": ""
+        },
+        "start_V": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "stop_V": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "minimum_V": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "maximum_V": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "step_V": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "direction": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "증가/감소/왕복/임의 경로. 데이터 정렬 방향과 구별"
+        },
+        "turning_points_V": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": ""
+        },
+        "original_order_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "원본 acquisition 순서와 block을 유지한 실제 파일"
+        },
+        "fixed_vg_V": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "fixed_vds_V": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "block_label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "sweep_delay_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "hold_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "integration_time_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "nplc": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "filter_settings": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "compliance_A": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "instrument_range": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "light_state": {
+          "enum": [
+            "dark",
+            "light",
+            "unknown"
+          ],
+          "description": ""
+        },
+        "light_details": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "파장·광세기·입사 위치·편광·안정화 시간 및 미확인 항목"
+        },
+        "temperature_K": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "pressure_Pa": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "history": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "prebias/이전 sweep/진공·대기 노출/보관/전처리/측정 순서"
+        },
+        "voltage_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Vds=Vd−Vs. Vg가 Vs 기준인지, back-gate인지 명시"
+        },
+        "current_sign_convention": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "장비 측정 전류 방향 및 변환 이력"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "swept_variable",
+        "start_V",
+        "stop_V",
+        "direction",
+        "sweep_delay_s",
+        "hold_s",
+        "light_state",
+        "history"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": ""
+        },
+        "label": {
+          "type": "string",
+          "description": "본문에 쓰는 짧은 파일명/별칭"
+        },
+        "raw_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "보고서 기준 상대 경로. 실제 존재 확인 후만 링크"
+        },
+        "link_validated": {
+          "type": "boolean",
+          "description": ""
+        },
+        "kind": {
+          "enum": [
+            "spreadsheet",
+            "csv",
+            "image",
+            "instrument_export",
+            "other"
+          ],
+          "description": ""
+        },
+        "confirmed_measurement_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "사용자 확인 실제 날짜; 해당 파일에만 적용"
+        },
+        "date_confirmation_scope": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "해당 source/run을 특정한 확인 범위"
+        },
+        "date_confirmed_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "date_confirmation_evidence": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "instrument_saved_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "참고 시각; actual date를 덮어쓰지 않음"
+        },
+        "file_modified_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "참고 시각"
+        },
+        "sheet": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "cell_ranges": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "column_mapping": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "description": ""
+          }
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "F의 접힌 상세 전용"
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "raw_path",
+        "link_validated",
+        "kind",
+        "confirmed_measurement_date",
+        "date_confirmation_scope",
+        "instrument_saved_at",
+        "sheet",
+        "cell_ranges"
+      ]
+    },
+    "run": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": ""
+        },
+        "label": {
+          "type": "string",
+          "description": ""
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "kind": {
+          "enum": [
+            "transfer",
+            "output",
+            "tlm",
+            "four_probe",
+            "cv",
+            "hall",
+            "other"
+          ],
+          "description": ""
+        },
+        "device_id": {
+          "type": "string",
+          "description": ""
+        },
+        "terminal_mapping": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "protocol": {
+          "$ref": "#/$defs/protocol"
+        },
+        "original_point_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "units": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "description": ""
+          }
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "source_refs",
+        "kind",
+        "protocol"
+      ]
+    },
+    "floor": {
+      "type": "object",
+      "properties": {
+        "value_A": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "",
+          "minimum": 0
+        },
+        "verified": {
+          "type": "boolean",
+          "description": ""
+        },
+        "method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "run_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "instrument_range": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "bias_domain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "time_scope": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "confidence_definition": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "offset_correction": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "below_floor_rule": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "예: |I|≤floor라는 검증된 상한. 엄격/비엄격 부등호를 명시한다."
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "value_A",
+        "verified",
+        "method",
+        "source_refs",
+        "run_refs"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verified": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value_A": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "method": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_refs": {
+                "minItems": 1
+              },
+              "run_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "본문용 평가 조건·위치 한 문장"
+        },
+        "run_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "comparison_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "vg_V": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "vds_V": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "vg_interval_V": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": ""
+        },
+        "vds_interval_V": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": ""
+        },
+        "current_interval_A": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": ""
+        },
+        "current_decades": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "original_domain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "selected_domain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "direction_block": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "ns": {
+          "$ref": "#/$defs/quantity"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "run_refs",
+        "comparison_refs"
+      ]
+    },
+    "extraction": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "본문에 쓰는 짧은 방법 설명"
+        },
+        "method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "formula": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "settings": {
+          "type": "object"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "included_ranges": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "excluded_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "locator": {
+                "type": "string",
+                "description": ""
+              },
+              "reason": {
+                "type": "string",
+                "description": ""
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "locator",
+              "reason"
+            ]
+          },
+          "description": ""
+        },
+        "point_lineage_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "원본 sheet/cell/row와 추출점 매핑 CSV/JSON, 실제 경로"
+        },
+        "unit_conversions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "method",
+        "formula",
+        "settings",
+        "included_ranges",
+        "excluded_points",
+        "point_lineage_path"
+      ]
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "inputs_complete": {
+          "type": "boolean",
+          "description": ""
+        },
+        "method_checked": {
+          "type": "boolean",
+          "description": ""
+        },
+        "conditions_checked": {
+          "type": "boolean",
+          "description": ""
+        },
+        "qc_passed": {
+          "type": "boolean",
+          "description": ""
+        },
+        "model_validated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reviewer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "reviewed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "inputs_complete",
+        "method_checked",
+        "conditions_checked",
+        "qc_passed",
+        "model_validated",
+        "reason"
+      ]
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": ""
+        },
+        "label": {
+          "type": "string",
+          "description": ""
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": ""
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "display_value": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "형식화 값; 수치·단위와 일치하는지 검증 후만 사용"
+        },
+        "value_kind": {
+          "enum": [
+            "exact",
+            "lower_bound",
+            "upper_bound",
+            "unavailable"
+          ],
+          "description": ""
+        },
+        "relation": {
+          "enum": [
+            "=",
+            "≥",
+            ">",
+            "≤",
+            "<",
+            null
+          ],
+          "description": ""
+        },
+        "status": {
+          "enum": [
+            "confirmed",
+            "candidate",
+            "on_hold",
+            "no_measurement"
+          ],
+          "description": ""
+        },
+        "display_approved": {
+          "type": "boolean",
+          "description": "전제·비교·그림·출처 검사를 통과한 읽기 전용 파생 flag"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/evaluation"
+        },
+        "extraction": {
+          "$ref": "#/$defs/extraction"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "figure_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "validation": {
+          "$ref": "#/$defs/validation"
+        },
+        "bound_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "floor_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "uncertainty": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": ""
+                },
+                "kind": {
+                  "type": "string",
+                  "description": ""
+                },
+                "definition": {
+                  "type": "string",
+                  "description": ""
+                },
+                "source_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "description": ""
+                },
+                "validated_repeats": {
+                  "type": "boolean",
+                  "description": ""
+                },
+                "sample_size": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "detail_anchor": {
+          "type": "string",
+          "description": "본문→F의 안정적인 ASCII 앵커",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "value",
+        "unit",
+        "value_kind",
+        "relation",
+        "status",
+        "display_approved",
+        "evaluation",
+        "extraction",
+        "source_refs",
+        "figure_ids",
+        "validation",
+        "detail_anchor"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "confirmed",
+                  "candidate"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_refs": {
+                "minItems": 1
+              },
+              "figure_ids": {
+                "minItems": 1
+              },
+              "evaluation": {
+                "properties": {
+                  "summary": {
+                    "minLength": 1
+                  },
+                  "run_refs": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "extraction": {
+                "properties": {
+                  "summary": {
+                    "minLength": 1
+                  },
+                  "method": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "value_kind": {
+                "enum": [
+                  "exact",
+                  "lower_bound",
+                  "upper_bound"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "on_hold",
+                  "no_measurement"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              },
+              "display_approved": {
+                "const": false
+              },
+              "value_kind": {
+                "const": "unavailable"
+              },
+              "relation": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "confirmed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "validation": {
+                "properties": {
+                  "inputs_complete": {
+                    "const": true
+                  },
+                  "method_checked": {
+                    "const": true
+                  },
+                  "conditions_checked": {
+                    "const": true
+                  },
+                  "qc_passed": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_kind": {
+                "const": "lower_bound"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "relation": {
+                "enum": [
+                  "≥",
+                  ">"
+                ]
+              },
+              "bound_reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "floor_refs": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "bound_reason",
+              "floor_refs"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_kind": {
+                "const": "upper_bound"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "relation": {
+                "enum": [
+                  "≤",
+                  "<"
+                ]
+              },
+              "bound_reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "floor_refs": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "bound_reason",
+              "floor_refs"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_kind": {
+                "const": "exact"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "relation": {
+                "const": "="
+              }
+            }
+          }
+        }
+      ]
+    },
+    "figure": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": ""
+        },
+        "state": {
+          "enum": [
+            "ready",
+            "missing_input",
+            "not_requested",
+            "failed"
+          ],
+          "description": ""
+        },
+        "title": {
+          "type": "string",
+          "description": ""
+        },
+        "x_axis": {
+          "type": "string",
+          "description": ""
+        },
+        "y_axis": {
+          "type": "string",
+          "description": ""
+        },
+        "image_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "plot_data_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "result_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "run_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "caption": {
+          "type": "object",
+          "properties": {
+            "observation": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": ""
+            },
+            "conditions": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": ""
+            },
+            "limitation": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": ""
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "observation",
+            "conditions",
+            "limitation"
+          ]
+        },
+        "render_verified": {
+          "type": "boolean",
+          "description": ""
+        },
+        "data_scope": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "전체 범위 / 추출 구간 / 승인된 공통 영역을 구분"
+        },
+        "style_mapping": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "exclusions_annotation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "error_bars": {
+          "type": "boolean",
+          "description": ""
+        },
+        "validated_repeat_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "failure_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "failure_stage": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "state",
+        "title",
+        "x_axis",
+        "y_axis",
+        "image_path",
+        "plot_data_path",
+        "source_refs",
+        "caption",
+        "render_verified",
+        "error_bars",
+        "validated_repeat_refs"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "ready"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "image_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plot_data_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_refs": {
+                "minItems": 1
+              },
+              "render_verified": {
+                "const": true
+              },
+              "caption": {
+                "properties": {
+                  "observation": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "conditions": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error_bars": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "validated_repeat_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "failed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "failure_reason"
+            ],
+            "properties": {
+              "failure_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "comparison": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": ""
+        },
+        "question": {
+          "type": "string",
+          "description": ""
+        },
+        "run_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "status": {
+          "enum": [
+            "approved_for_scope",
+            "unverified",
+            "rejected"
+          ],
+          "description": ""
+        },
+        "varied_dimensions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "approved_module_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "condition": {
+                "type": "string",
+                "description": ""
+              },
+              "reference": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": ""
+              },
+              "test": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": ""
+              },
+              "verdict": {
+                "enum": [
+                  "matched",
+                  "intentionally_varied",
+                  "different",
+                  "unknown"
+                ],
+                "description": ""
+              },
+              "evidence": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": ""
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "condition",
+              "reference",
+              "test",
+              "verdict"
+            ]
+          },
+          "description": ""
+        },
+        "original_domains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "common_domain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "interpolation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "history_review": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "limitations": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "question",
+        "run_refs",
+        "status",
+        "varied_dimensions",
+        "approved_module_ids",
+        "checks",
+        "original_domains",
+        "common_domain",
+        "reason"
+      ]
+    },
+    "module": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": ""
+        },
+        "title": {
+          "type": "string",
+          "description": ""
+        },
+        "meaning": {
+          "type": "string",
+          "description": ""
+        },
+        "status": {
+          "enum": [
+            "confirmed",
+            "candidate",
+            "on_hold",
+            "no_measurement"
+          ],
+          "description": ""
+        },
+        "display_approved": {
+          "type": "boolean",
+          "description": ""
+        },
+        "method_summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "observation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "data_specific_caution": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "figure_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "comparison_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "results": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/result"
+          }
+        },
+        "settings": {
+          "type": "object"
+        },
+        "omit_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "caution": {
+          "type": "string",
+          "description": "모듈 카탈로그의 기본 주의점. 측정별 주의점은 data_specific_caution에 추가한다."
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "meaning",
+        "status",
+        "display_approved",
+        "figure_ids",
+        "comparison_refs",
+        "results",
+        "settings",
+        "omit_reason",
+        "caution"
+      ]
+    },
+    "report": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "profile": {
+          "enum": [
+            "id_vg",
+            "id_vd",
+            "comparison"
+          ],
+          "description": ""
+        },
+        "purpose": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "measurement_date_display": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "여러 날짜/미확인 날짜를 보존한 사용자용 표현"
+        },
+        "measurement_date_source_display": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "conditions_summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "generated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "보고서 생성 시각, 실제 측정일과 별도"
+        },
+        "template_version": {
+          "const": "1.0.0+hi.1"
+        },
+        "analysis_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "review_history": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": ""
+        },
+        "internal_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "metadata_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata_review_required": {
+          "type": "boolean"
+        },
+        "measurement_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata_rows": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "other_evidence": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "value",
+              "unit",
+              "source",
+              "status",
+              "other_evidence"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "audit_links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "label",
+              "path"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "profile",
+        "purpose",
+        "measurement_date_display",
+        "measurement_date_source_display",
+        "conditions_summary",
+        "generated_at",
+        "template_version"
+      ]
+    },
+    "device": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "material": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "structure_summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "terminal_mapping": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "length": {
+          "$ref": "#/$defs/quantity"
+        },
+        "width": {
+          "$ref": "#/$defs/quantity"
+        },
+        "cins_areal": {
+          "$ref": "#/$defs/quantity"
+        },
+        "thickness": {
+          "$ref": "#/$defs/quantity"
+        },
+        "dielectric_thickness": {
+          "$ref": "#/$defs/quantity"
+        },
+        "capacitance_model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "analysis_context": {
+          "enum": [
+            "general_fet",
+            "drain_fold",
+            "unknown"
+          ],
+          "description": "사용자가 지정하거나 구조 정보로 확인한 분석 문맥. drain_fold일 때만 D를 활성화한다."
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "material",
+        "structure_summary",
+        "length",
+        "width",
+        "cins_areal",
+        "analysis_context"
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "maxItems": 3
+        },
+        "unresolved_statement": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "hero_figure_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": ""
+        },
+        "headline_metrics": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "properties": {
+              "module_id": {
+                "type": "string",
+                "description": ""
+              },
+              "result_key": {
+                "type": "string",
+                "description": ""
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "module_id",
+              "result_key"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "observations",
+        "unresolved_statement",
+        "hero_figure_id",
+        "headline_metrics"
+      ]
+    }
+  }
+}

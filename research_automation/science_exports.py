@@ -122,5 +122,10 @@ def note(summary,directory,cfg):
     if not name and g:
         candidate=g['group_id']+('_transfer.png' if g['axis']=='vg' else '_fit.png')
         if (directory/candidate).is_file():name=candidate
-    atomic_text(destination,render_note(summary,assets,directory,name))
+    if (asset_dir/'research_report.json').is_file() and summary.get('raw_snapshot'):
+        from .template_integration import render_measurement
+        text=render_measurement(summary,asset_dir,assets,relative)
+    else:
+        text=render_note(summary,assets,directory,name)
+    atomic_text(destination,text)
     return destination

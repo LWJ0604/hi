@@ -22,3 +22,5 @@ synthetic-validation*/
 *.log
 qa-layout/
 qa-runtime/
+build/
+dist/

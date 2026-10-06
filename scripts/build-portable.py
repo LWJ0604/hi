@@ -66,7 +66,7 @@ def main():
     tests='@echo off\r\nsetlocal\r\ncd /d "%~dp0"\r\nset "TCL_LIBRARY=runtime/tcl/tcl8.6"\r\nset "TK_LIBRARY=runtime/tcl/tk8.6"\r\n"%~dp0runtime\\python.exe" -m unittest discover -s tests -v\r\npause\r\n'
     (bundle/'Run-Local-Tests.cmd').write_bytes(tests.encode('ascii'))
     manifest={'source_commit':args.source_commit,'application_version':__version__,
-              'code_sha256':code_fingerprint(),'report_format':'fet-research-note-2',
+              'code_sha256':code_fingerprint(),'report_format':'fet-template-report-1','template_version':'1.0.0+hi.1',
               'metric_storage_schema':3,'actual_user_data_included':False}
     (bundle/'release-build.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
     source=args.output/f'research-automation-source-v{__version__}';source.mkdir(exist_ok=False)

@@ -173,10 +173,13 @@ class ComparisonPresentationTests(unittest.TestCase):
             c=s['research_context'];c.update(device_name='same',illumination=lighting,measurement_date='2026-09-24' if lighting=='light' and other_date else '2026-09-23')
             c['fields']={k:{'value':'same','status':'confirmed','source':'synthetic'} for k in REQUIRED}
             c['fields'].update(illumination={'value':lighting,'status':'confirmed','source':'synthetic'},measurement_date={'value':c['measurement_date'],'status':'confirmed','source':'synthetic'})
-            s.update(schema_version=4,source_relative_path=lighting+'.csv',source_sha256=lighting,job_id=lighting,vault_note_relative_path='Experiments/'+lighting+'.md')
+            s.update(schema_version=4,source_relative_path=lighting+'.csv',job_id=lighting,vault_note_relative_path='Experiments/'+lighting+'.md')
             if lighting=='light':frame['id_a']+=1e-9
             if lighting=='light' and other_sweep:s['groups'][0]['original_sweep']['min_v']=-40
             directory=self.cfg.paths['analysis']/lighting;directory.mkdir()
+            import hashlib
+            snapshot=directory/'synthetic-source.csv';frame.to_csv(snapshot,index=False,encoding='utf-8')
+            s.update(raw_snapshot=str(snapshot),source_sha256=hashlib.sha256(snapshot.read_bytes()).hexdigest())
             (directory/'result.json').write_text(json.dumps(s), encoding="utf-8");frame.to_csv(directory/'curves.csv',index=False)
             (self.cfg.paths['vault']/s['vault_note_relative_path']).parent.mkdir(exist_ok=True)
             (self.cfg.paths['vault']/s['vault_note_relative_path']).write_text('User original', encoding="utf-8")

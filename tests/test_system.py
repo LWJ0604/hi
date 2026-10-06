@@ -321,7 +321,7 @@ class PipelineTests(Base):
         self.assertEqual(result["counts"]["completed"], 1)
         self.assertEqual(source.read_bytes(), original)
         note = Path(result["files"][0]["note"])
-        self.assertIn("## QC", note.read_text(encoding="utf-8"))
+        self.assertIn("QC와 정량 사용 제한", note.read_text(encoding="utf-8"))
         images = list((self.cfg.paths["vault"] / "Attachments").rglob("*.png"))
         self.assertEqual(len([image for image in images if image.name.endswith("_fit.png")] ), 1)
         self.assertEqual(len([image for image in images if image.name.startswith("overview_")] ), 1)

@@ -30,11 +30,19 @@ class ResearchIntegrationTests(unittest.TestCase):
         source=self.measurement();before=source.read_bytes();result=scan(self.cfg)
         self.assertEqual(result['counts']['completed'],1)
         entry=result['files'][0];summary=json.loads(Path(entry['result_path']).read_text(encoding="utf-8"));note=Path(entry['note']).read_text(encoding="utf-8")
-        self.assertIn(f'Experiments/v{__version__}/',Path(entry['note']).as_posix());self.assertIn('평가 \\|Vd\\|',note)
+        self.assertIn(f'Experiments/v{__version__}/',Path(entry['note']).as_posix());self.assertIn('RR 평가 |Vds|=',note)
         self.assertNotEqual(summary['research_context']['metadata_status'],'confirmed')
         metrics=pd.read_csv(Path(entry['result_path']).parent/'observable_metrics.csv')
         rr=metrics[metrics['metric']=='rectification_ratio'];self.assertEqual(rr['evaluation_abs_vd_v'].tolist(),[.5,1.,1.5,2.])
         self.assertTrue((rr['unit']=='1').all());self.assertAlmostEqual(rr.iloc[1]['value'],.2)
+        assets=self.cfg.paths['vault']/summary['vault_assets_relative_path']
+        context=json.loads((assets/'report_context.json').read_text(encoding='utf-8'))
+        for record in context['modules']['conductance']['results'].values():
+            self.assertTrue(record['figure_ids'])
+            # The source evidence for G at an arbitrary drain bias must be its
+            # Id/Vds curve, not the different ±u gate-slice plot.
+            for fid in record['figure_ids']:
+                self.assertIn('Vds',context['figures'][fid]['x_axis'])
         for link in re.findall(r'\[\[([^\]|]+)',note):self.assertTrue((self.cfg.paths['vault']/link).exists())
         self.assertEqual(source.read_bytes(),before)
     def test_override_reuses_numeric_values_preserves_user_body_and_other_files(self):

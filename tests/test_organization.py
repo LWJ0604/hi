@@ -165,8 +165,16 @@ class OrganizationPipelineTests(Base):
         for entry in outcome["files"]:
             note = Path(entry["note"])
             text = note.read_text(encoding="utf-8")
-            self.assertIn('measurement_date: "2026-09-', text)
+            self.assertIn('measurement_date: null', text)
+            self.assertIn('2026-09-', text)
+            self.assertIn('사용자 확인 전', text)
             self.assertIn("device_name:", text)
+            assets=self.cfg.paths['vault']/json.loads((self.cfg.paths['analysis']/'runs'/('v'+__version__)/entry['job_id']/'result.json').read_text(encoding='utf-8'))['vault_assets_relative_path']
+            manifest=json.loads((assets/'figure2_manifest.json').read_text(encoding='utf-8'))
+            if any(p['panel']=='e' and p['generation_status']=='generated' for p in manifest['panels']):
+                data=pd.read_csv(assets/'figure2_e_data.csv',float_precision='round_trip')
+                self.assertFalse(data.empty)
+                self.assertTrue({'signed_current_a','value','candidate_value_assuming_si','candidate_value_exploratory'}<=set(data.columns))
             for link in re.findall(r'\[\[([^\]|]+)(?:\|[^\]]*)?\]\]', text):
                 self.assertTrue((self.cfg.paths["vault"] / link).exists(), link)
             result = json.loads((self.cfg.paths["analysis"] / "runs" / ("v" + __version__) / entry["job_id"] / "result.json").read_text(encoding="utf-8"))

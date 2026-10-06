@@ -30,9 +30,11 @@ class SavedResultReviewTests(Base):
     def test_audit_detects_missing_links_output_and_changed_input_without_rewriting(self):
         source = self.sample();entry = scan(self.cfg)['files'][0]
         result = Path(entry['result_path']);summary=json.loads(result.read_text(encoding="utf-8"))
-        figure = summary['figures'][0]
+        view=json.loads((self.cfg.paths['vault']/summary['vault_assets_relative_path']/'report_context.json').read_text(encoding='utf-8'))
+        figure=view['figures'][view['summary']['hero_figure_id']]['image_path']
         (result.parent / figure).unlink()
         (self.cfg.paths['vault'] / summary['vault_assets_relative_path'] / figure).unlink()
+        (self.cfg.paths['vault'] / summary['vault_assets_relative_path'] / 'metric_evidence.json').unlink()
         source.write_text(source.read_text(encoding="utf-8")+'\n', encoding="utf-8")
         targets = [source, result, Path(entry['note']), self.cfg.paths['state']/'jobs.sqlite3']
         hashes = {path:sha(path) for path in targets}
@@ -40,6 +42,7 @@ class SavedResultReviewTests(Base):
         detail = json.loads(Path(output['report']).with_name('audit.json').read_text(encoding="utf-8"))
         codes = {i['code'] for i in detail['issues']}
         self.assertTrue({'output_missing','note_link_missing','original_hash_changed','input_without_completed_result','metadata_review_needed'} <= codes)
+        self.assertTrue(any(i['code']=='note_link_missing' and 'metric_evidence.json' in i['detail'] for i in detail['issues']))
         self.assertEqual(output['covered_inputs'],0)
         self.assertEqual(hashes,{path:sha(path) for path in targets})
 
@@ -76,7 +79,10 @@ class SavedResultReviewTests(Base):
                 name='prior_'+p.name if p.name.startswith('fet_') or p.name in ('research_report.json','research_metrics.csv','figure2_manifest.json','metric_evidence.json') else p.name
                 self.assertEqual(sha(p),sha(assets/name))
         text=Path(result['files'][0]['note']).read_text(encoding="utf-8")
-        self.assertIn('## 연구 질문',text);self.assertIn('<summary>감사 상세',text)
-        import re
-        for link in re.findall(r'\[\[([^\]|]+)',text):self.assertTrue((self.cfg.paths['vault']/link).is_file(),link)
+        self.assertIn('## A. 측정 개요',text);self.assertIn('> [!info]-',text)
+        from research_automation.result_review import note_local_targets
+        links=note_local_targets(text,Path(result['files'][0]['note']),self.cfg.paths['vault'])
+        self.assertTrue(links)
+        for link,target in links:self.assertTrue(target and target.is_file(),link)
+        self.assertTrue({'research_report.json','metric_evidence.json','result.json','research_metrics.csv','figure2_manifest.json'} <= {target.name for _,target in links})
         self.assertTrue((assets/'fet_summary.csv').is_file())

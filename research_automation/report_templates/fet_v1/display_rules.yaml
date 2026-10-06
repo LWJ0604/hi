@@ -1,0 +1,161 @@
+version: 1.0.0
+rendering:
+  viewer: Obsidian native Markdown; no community plugin, external script or theme required
+  template_engine: Optional upstream Jinja2; never evaluated inside Obsidian
+  body_result_statuses:
+  - confirmed
+  - candidate
+  headline_statuses:
+  - confirmed
+  headline_limit: 4
+  observation_limit: 3
+  next_action_limit: 3
+  missing_numeric_value: null
+  render_unresolved_placeholder: false
+  empty_section: omit
+  missing_image: omit_and_list_reason_in_availability
+  failed_image: omit_image_and_list_in_separate_rendering_failure_callout
+  drain_section_condition: device.analysis_context == drain_fold; structure/model inference is not implied
+statuses:
+  confirmed: 확인된 값
+  candidate: 모델·구간 검증이 필요한 후보
+  on_hold: 조건 확인 전 보류
+  no_measurement: 필요한 측정 없음
+result_guard:
+- Each result has value/unit/status/extraction/evaluation/source_refs/figure_ids, with an exact/bound distinction.
+- 'confirmed: all input, method, condition and QC checks passed within the stated scope.'
+- 'candidate: a reproducible numeric extraction exists, but its model or interval still requires validation.'
+- 'on_hold/no_measurement: value=null, display_approved=false, no body metric row.'
+- A bound needs a verified floor, its source and applicability, an inequality and a reason.
+- display_approved is computed after schema + semantic checks, not inferred merely from a finite number.
+- Every displayed result links to at least one ready, verified figure that supports that result.
+- Per-result approval cannot override rejected/unverified comparison conditions.
+profiles:
+  id_vg:
+    raw_figure_ids:
+    - structure
+    - transfer_linear
+    - transfer_log
+    fet_module_ids:
+    - gm
+    - vt
+    - y_function
+    - ss
+    - mu_fe
+    - extrema
+    - on_off
+    drain_module_ids: []
+  id_vd:
+    raw_figure_ids:
+    - structure
+    - output
+    fet_module_ids:
+    - gds
+    - saturation
+    drain_module_ids:
+    - polarity_current
+    - rectification
+    - conductance
+    - conductance_asymmetry
+    - bias_dependence
+    - rr_transition
+  comparison:
+    raw_figure_ids:
+    - structure
+    - transfer_linear
+    - transfer_log
+    - output
+    fet_module_ids:
+    - gm
+    - vt
+    - y_function
+    - ss
+    - mu_fe
+    - extrema
+    - on_off
+    - gds
+    - saturation
+    - hysteresis
+    - dibl
+    - tlm
+    - rc_ns
+    - rsh_ns
+    - mu_con_ns
+    drain_module_ids:
+    - polarity_current
+    - rectification
+    - conductance
+    - conductance_asymmetry
+    - gm_polarity
+    - gm_normalized
+    - bias_dependence
+    - rr_transition
+eligibility:
+  gm: 실제 단조 gate block과 미분 설정이 있음
+  vt: 추출 기준과 실제 평가 구간이 있음
+  y_function: 실제로 유한한 Y와 피팅 근거가 있음; 미검증 모델은 candidate
+  ss: 유효한 subthreshold 구간과 floor/누설 검토가 있음
+  mu_fe: L/W/Cins/Vds/gm이 모두 있음; 선형 모델 검증 전은 candidate
+  extrema: 원래 전체 측정 범위와 유효 전류 판정이 있음
+  on_off: on/off 정의와 실제 평가점이 있음
+  gds: 미분 가능한 실제 output이 있음
+  saturation: 포화 검토 가능한 실제 output; confirmed는 포화 검증 완료
+  hysteresis: 검증된 정·역 pair와 공통 기준이 있음
+  dibl: 동일 극성의 서로 다른 |Vds|와 비교 가능한 VT가 있음
+  tlm: 실제 길이별 구조와 비교 검증; 확정은 ≥4 distinct L 및 저항 모델 검증; 3개는 탐색 후보만
+  rc_ns: 접촉 분리 저항과 신뢰 가능한 nS가 모두 있음
+  rsh_ns: 접촉 분리 Rsh와 신뢰 가능한 nS가 모두 있음
+  mu_con_ns: 접촉 분리 Rsh·신뢰 가능한 nS·전도 모델이 모두 검증됨
+  polarity_current: 비교 조건이 승인된 ± 데이터
+  rectification: 유효 ±pair 및 전류 정량성 검증; 필요한 floor 미확인은 보류
+  conductance: 유효한 비영 Vds의 ±pair
+  conductance_asymmetry: 유효 G pair; AG는 양의 분모 필요
+  gm_polarity: 비교 가능한 ±gate 미분 결과와 비영 고정 Vds
+  gm_normalized: 유효 gm과 양의 분모가 있음; 극성 비교는 승인된 pair만
+  bias_dependence: 실제 output과 유효 ±매칭 또는 비영 Vds G가 있음
+  rr_transition: 알고리즘·구간·검증이 명시됨; 미정의는 부록의 보류 1줄
+comparison_guards:
+- Evaluate metadata per source and per run; unknown is never equal to unknown.
+- Only intentionally varied, known dimensions may differ in an approved comparison.
+- Preserve original sweep range, direction, block, order, light, delay, hold and stress history.
+- Cropping to an overlapping gate range does not equalize the original stress history.
+- Do not compare a measured gate sweep with an output slice without preserving their distinct acquisition origins.
+- Use measured matching points by default; interpolation requires a declared tolerance/method and no extrapolation.
+- An approval names the module ids and domains it covers; no global all-metrics approval.
+figure_style:
+  figure_size: Single-figure full column; recommended export width >=1400 px or scalable SVG; no tiny core multipanels
+  font: Readable sans-serif, consistent throughout; 12–14 pt minimum at displayed size
+  raw_points: markers without a fit-like smooth line
+  smoothed_curve: solid line labelled smoothed
+  fit_curve: dashed line labelled fit; only the fitted interval plus explicitly shown extrapolation
+  excluded_points: hollow crossed markers with reason and legend
+  polarity_encoding: Same two restrained colors throughout polarity comparisons; also explicit +/− labels
+  direction_encoding: Different marker shapes with forward/reverse labels
+  light_encoding: Filled/open markers and dark/light labels; never rely on fill alone
+  output_gate_encoding: A fixed gate-level palette within output figures, explicitly keyed to Vg; do not imply polarity
+    color
+  error_bars: Only when validated repeat measurements and their aggregation definition exist
+  caption: '2–3 sentences: direct observation, full evaluation conditions, main limitation; raw and extracted data
+    links'
+  axis: Quantity, unit, voltage reference, log/linear convention; absolute-value notation wherever used
+fixed_formulas:
+  RR: abs(I_plus)/abs(I_minus)
+  G_plus: I_plus/abs(Vds)
+  G_minus: I_minus/(-abs(Vds))
+  delta_G: abs(G_plus)-abs(G_minus)
+  A_G: delta_G/(abs(G_plus)+abs(G_minus))
+  gm: dId/dVg at fixed Vds
+  gm_over_Vds: d(Id/Vds)/dVg at fixed nonzero Vds
+  gds: dId/dVds at fixed Vg
+release_gate:
+- No unresolved {{...}}, placeholder graph blocks, absent image links, empty panels or empty metric rows.
+- All numeric body values have traceable source and extraction/evaluation records.
+- Units, contact sum normalization and carrier-density definitions are consistent.
+- All candidate results are visibly labelled; no candidate appears as a confirmed headline.
+- No forced RR>=1, no epsilon-created RR peak, no G calculation at Vds=0.
+- No unsigned rewrite of Id/gm and no sign-erasing normalization.
+- No RR transition point without a declared algorithm; numerical argmin is separate.
+- No width-normalized current when W is unknown.
+- No fabricated output/TLM/saturation/density/mobility from a single transfer curve.
+- Source date confirmations remain scoped to their source; saved timestamps stay reference-only.
+- Inspect every exported figure; keep source data unchanged.

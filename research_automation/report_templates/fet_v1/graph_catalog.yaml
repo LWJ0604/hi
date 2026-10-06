@@ -1,0 +1,275 @@
+version: 1.0.0
+graphs:
+- id: structure
+  title: 소자 구조와 측정 단자
+  x_axis: 공간 좌표 또는 축척
+  y_axis: 구조·재료·단자
+  required_inputs: 확인된 광학/전자현미경 이미지 또는 검토된 구조도; 단자 매핑; 치수의 출처
+  required_annotations: Source/Drain/Gate; L/W와 측정 기준; 측정 이미지와 제안 모델 구분
+  caption_template: 확인된 소자 구조와 측정 단자를 표시한다. 추정 치수와 실제 측정 치수는 서로 구분한다.
+  visibility_condition: 검증된 구조 이미지가 실제로 있고 구조·단자 설명이 가능할 때
+- id: transfer_linear
+  title: 전달 특성 — 부호를 보존한 Id
+  x_axis: Vg 또는 Vbg (V), 전압 기준 명시
+  y_axis: Id (A; 필요 시 nA/µA로 환산)
+  required_inputs: 실제 gate sweep의 Vg, Id, 고정 Vds, 원래 순서, block, 방향
+  required_annotations: 전체 측정 범위; 스윕 방향; 제외점; on/off 또는 극값은 해당 정의가 있을 때만
+  caption_template: 각 곡선은 범례에 표시한 Vds·광 조건·스윕 방향의 실제 측정이다. 전체 측정 범위를 유지하고, 제외점이 있으면 위치와 이유를 함께 표시한다.
+  visibility_condition: 실제 Id–Vg 측정이 있음; output에서 얻은 gate 단면은 별도 표기
+- id: transfer_log
+  title: 서브스레시홀드 특성 — |Id|와 |Ig|
+  x_axis: Vg 또는 Vbg (V)
+  y_axis: '|Id|, 가능한 |Ig| (A), 로그 축'
+  required_inputs: 동일 block의 Vg, Id; Ig가 있으면 동일 측정점의 Ig; 검출한계 검증 정보
+  required_annotations: 0·검출한계 미만 값의 처리; Ig 유무; 전체 범위; 평활값과 측정값 구분
+  caption_template: 로그 축에는 유효한 양의 전류 크기만 표시한다. Ig가 있으면 같은 조건에서 중첩하고, 미검출점을 임의의 작은 양수로 바꾸지 않는다.
+  visibility_condition: 실제 gate sweep과 로그 표시 가능한 유효 전류가 있음
+- id: output
+  title: 출력 특성 — Vg별 Id–Vds
+  x_axis: Vds (V)
+  y_axis: Id (A)
+  required_inputs: 실제 drain sweep의 Vds, Id, Vg, acquisition block, 방향
+  required_annotations: 전체 Vds 범위; Vg별 구분; 방향; 저바이어스/포화 구간은 확인된 경우만
+  caption_template: 각 곡선은 고정 Vg에서 수행한 실제 Vds sweep이다. 전달 곡선 몇 개를 연결하여 output 측정처럼 표시하지 않는다.
+  visibility_condition: 실제 output sweep이 있음
+- id: gm
+  title: 트랜스컨덕턴스 — 원시 미분과 평활 미분
+  x_axis: Vg (V)
+  y_axis: gm = ∂Id/∂Vg (S)
+  required_inputs: 단조 gate sweep block; 원시 Id; 실제 Vg 간격; 미분·평활 설정
+  required_annotations: raw derivative와 smoothed derivative; 선택한 peak 정의·위치; 끝점; 유효 창 폭 (V/points)
+  caption_template: 동일 원시 전류에서 계산한 평활 전·후 미분을 구분한다. 선택 peak의 정의와 유효 미분 구간을 표시하고, 스윕 반전점이나 끝점을 정상 내부점과
+    섞지 않는다.
+  visibility_condition: 한 block 안에서 미분 가능; 설정·구간·끝점 처리 기록이 있음
+- id: vt
+  title: 문턱전압 — 실제 추출 기준
+  x_axis: Vg (V)
+  y_axis: Id (A) 또는 선택 방법에 맞는 변환량
+  required_inputs: 전달 곡선; 선택한 VT 방법; 실제 평가 기준 또는 피팅점
+  required_annotations: 기준 전류/기준선; 피팅 구간; 외삽선; 절편; finite-Vds 보정 여부
+  caption_template: 표시된 기준과 구간으로 VT를 추출한다. 다른 방법의 VT와 혼용하지 않으며, 피팅선과 사용하지 않은 측정점도 구분한다.
+  visibility_condition: 정의된 VT 방법과 이를 평가할 실제 구간이 있음
+- id: y_function
+  title: Y-function — 모델 적합성 탐색
+  x_axis: Vg (V)
+  y_axis: Y (√(A·V)); 정확한 정의 명시
+  required_inputs: Id, gm; 부호 변환 관례; Y 모델; 유효 gm 마스크; 피팅 범위
+  required_annotations: Y 정의; 모델 검증 상태; 유효점; 선형 피팅 구간·잔차
+  caption_template: Y의 정의와 사용한 gm 처리를 함께 표시한다. 모델이나 적용 구간이 검증되지 않았다면 결과는 탐색 후보이며 접촉 영향이 제거되었다고 단정하지 않는다.
+  visibility_condition: Y를 유한하게 계산 가능한 데이터가 있음; 모델 미검증 시 후보로만 표시
+- id: ss_window
+  title: SS 추출 구간 — 전달 곡선에서 확인
+  x_axis: Vg (V)
+  y_axis: '|Id| (A), 로그 축'
+  required_inputs: 서브스레시홀드 단조 구간; 유효 전류; 누설·floor 검토; SS 창
+  required_annotations: 실제 사용 구간; I_low/I_high; decade 범위; 제외점; 피팅선
+  caption_template: SS 계산에 사용한 실제 전류 범위와 gate 구간을 표시한다. 검출한계, 누설 우세점, 부호 반전 또는 비단조 구간은 유효한 SS 구간으로 자동
+    채택하지 않는다.
+  visibility_condition: 검토 가능한 subthreshold 구간이 있음
+- id: ss_current
+  title: 서브스레시홀드 스윙 — 전류에 따른 변화
+  x_axis: '|Id| (A), 로그 축'
+  y_axis: SS (mV/dec)
+  required_inputs: 각 SS 평가 창의 대표 전류, SS, Vg 범위, 사용점
+  required_annotations: 유효 최소 SS; 구간 평균; 전류 decade 범위; 방향별 구분
+  caption_template: 유효 창의 SS를 전류 크기에 따라 나타낸다. 최소값과 구간 평균을 구분하고, 각 요약값이 대표하는 전류 decade 범위를 기록한다.
+  visibility_condition: SS 추출 창과 대표 전류 정의가 있음
+- id: mu_fe
+  title: 유효 전계효과 이동도
+  x_axis: Vg (V)
+  y_axis: μFE (cm² V⁻¹ s⁻¹)
+  required_inputs: gm, L, W, 면적당 Cins, Vds; 단위; 각 입력의 측정/가정 상태; 선형 동작 근거
+  required_annotations: 선형 동작 검증 구간; 평가점; 접촉 포함 유효값 표시
+  caption_template: 기하학과 정전용량, Vds를 이용해 gm으로부터 μFE를 추출한다. 접촉 효과가 포함된 유효 추출값이며, 내재적 채널 이동도나 μcon과 동일시하지
+    않는다.
+  visibility_condition: 필수 입력이 모두 있음; 가정값 또는 모델 미검증은 후보로 분리
+- id: extrema
+  title: 측정 범위 내 최대·최소 전류
+  x_axis: Vg (V)
+  y_axis: '|Id| (A), 로그 축'
+  required_inputs: 원래 전체 gate 범위; 유효점 마스크; floor 판정; 최대/최소 위치
+  required_annotations: Imax/Imin 평가 위치; 전체 범위; 미검출이면 bound/보류 표시
+  caption_template: 최대·최소는 해당 측정의 원래 전체 범위에서 정의한다. 이 값은 지정 on/off 바이어스에서 평가한 Ion/Ioff와 다른 양이다.
+  visibility_condition: 실제 전체 범위와 극값의 유효성 검토가 있음
+- id: on_off
+  title: 지정 바이어스의 on/off 전류
+  x_axis: Vg (V)
+  y_axis: '|Id| (A), 로그 축'
+  required_inputs: 사용자가 지정한 on/off Vg·Vds; 해당 측정점 또는 허용된 보간
+  required_annotations: 두 평가점; 각 Vg/Vds; 보간 여부; floor bound
+  caption_template: 지정된 on/off 바이어스를 실제 곡선 위에 표시한다. 측정 범위의 최대·최소값을 on/off 전류로 자동 대체하지 않는다.
+  visibility_condition: 명시된 on/off 정의와 평가 가능한 실제 데이터가 있음
+- id: gds
+  title: 미분 출력 전도도
+  x_axis: Vds (V)
+  y_axis: gds = ∂Id/∂Vds (S)
+  required_inputs: 실제 output; 일정 Vg block; 미분 방식과 유효 Vds 창
+  required_annotations: 원시·평활 미분; 끝점; 사용 구간; Vg별 구분
+  caption_template: 고정 Vg의 실제 output에서 미분한 gds를 나타낸다. 직류 전도도 Id/Vds와 분리하여 해석한다.
+  visibility_condition: 실제 output에서 미분 가능한 연속 구간이 있음
+- id: saturation
+  title: 포화 구간과 평가 전류
+  x_axis: Vds (V)
+  y_axis: Id/W (A/µm); W 미확인 시 Id (A)
+  required_inputs: 실제 output; 포화 판정 기준·검증 구간; 평가 Vg/Vds; W 출처
+  required_annotations: 포화 구간; 판정 기준; 평가점; nS는 신뢰 가능할 때만
+  caption_template: 표시된 output 구간에서 포화 여부를 검토하고 평가점을 표시한다. 측정 최대 전류를 자동으로 Isat라고 부르지 않으며, 폭이 없으면 절대 전류를
+    사용한다.
+  visibility_condition: 포화 근거 구간이 있음; 포화 미확인은 후보, W 미확인은 절대 전류만
+- id: hysteresis
+  title: 정·역 스윕의 이력 의존성
+  x_axis: Vg (V)
+  y_axis: Id 또는 |Id| (A), 축 형식 명시
+  required_inputs: 비교 승인된 forward/reverse pair; 동일 추출 기준; 원래 range·timing·순서
+  required_annotations: forward/reverse; 공통 기준선; signed ΔVT 또는 ΔVg
+  caption_template: 같은 기준으로 평가한 정·역 스윕 차이를 표시한다. 원래 범위·방향·대기시간·순서를 보존하고, 다른 날짜의 이동을 자동으로 hysteresis로 부르지
+    않는다.
+  visibility_condition: 유효한 정·역 pair와 동일 평가 기준이 있음
+- id: dibl
+  title: 드레인 바이어스에 따른 VT
+  x_axis: Vds (V), 동일 극성의 low/high
+  y_axis: VT (V)
+  required_inputs: 복수 |Vds|에서 비교 승인된 전달 측정; 동일 VT 방법·방향·기준
+  required_annotations: 각 VT의 추출법; low/high; 부호 관례; 원본 VT 근거 그래프 링크
+  caption_template: 서로 다른 크기의 Vds에서 같은 방법으로 얻은 VT를 비교한다. ±같은 크기의 바이어스 비교를 통상적인 low/high-Vds DIBL로 대체하지
+    않는다.
+  visibility_condition: 동일 극성의 적절한 복수 Vds와 비교 가능한 VT가 있음
+- id: tlm
+  title: TLM — 길이에 따른 폭 정규화 저항
+  x_axis: L (µm)
+  y_axis: Rtot·W (Ω·µm)
+  required_inputs: 길이가 다른 저바이어스 소자들; L/W; Rtot 정의; 접촉·게이트·밀도 비교 검증
+  required_annotations: 실측점; 회귀선; 절편; 사용 길이 범위; 제외 소자; 단위
+  caption_template: 선택한 저바이어스 조건의 길이별 저항을 회귀한다. 절편은 (Rc,S+Rc,D)W이며, 접촉 대칭 근거 없이 절반으로 나누지 않는다.
+  visibility_condition: 실제 TLM 구조와 비교 조건이 있음; 확정용은 서로 다른 길이 4개 이상 및 모델 검증
+- id: tlm_residual
+  title: TLM — 회귀 잔차
+  x_axis: L (µm)
+  y_axis: Rtot·W 잔차 (Ω·µm)
+  required_inputs: TLM 회귀와 각 실측점의 잔차
+  required_annotations: 0 기준선; 제외점; 반복 측정이 없으면 오차 막대 없음
+  caption_template: 잔차로 선형 모델에서 벗어나는 길이 의존성을 확인한다. 회귀 적합도만으로 접촉 대칭이나 물리적 타당성을 확정하지 않는다.
+  visibility_condition: 평가 가능한 TLM 회귀가 있음
+- id: rc_ns
+  title: 캐리어 밀도에 따른 접촉 저항
+  x_axis: nS (cm⁻²)
+  y_axis: (Rc,S+Rc,D)W (Ω·µm), 또는 독립 분리한 Rc 정의
+  required_inputs: 접촉 분리 저항; 신뢰 가능한 nS; 밀도 정의와 위치; 폭 정규화 기준
+  required_annotations: contact sum/개별 접촉 구분; nS 측정/모델 추정; 유효 범위
+  caption_template: 신뢰 가능한 밀도와 접촉 분리 저항이 공통으로 존재하는 범위만 표시한다. 접촉 합과 개별 접촉 저항을 같은 Rc 표기로 혼용하지 않는다.
+  visibility_condition: 검증된 접촉 분리와 신뢰 가능한 nS가 모두 있음
+- id: rsh_ns
+  title: 캐리어 밀도에 따른 시트 저항
+  x_axis: nS (cm⁻²)
+  y_axis: Rsh (Ω/□)
+  required_inputs: TLM 또는 four-probe의 Rsh; 신뢰 가능한 nS; 공통 구간
+  required_annotations: 밀도 출처; 채널 저항 분리 방법; 유효 범위
+  caption_template: 접촉을 분리한 채널 시트 저항을 밀도별로 표시한다. 전체 two-terminal 저항을 그대로 Rsh로 치환하지 않는다.
+  visibility_condition: 검증된 채널 저항 분리와 신뢰 가능한 nS가 모두 있음
+- id: mu_con_ns
+  title: 캐리어 밀도에 따른 전도 이동도
+  x_axis: nS (cm⁻²)
+  y_axis: μcon (cm² V⁻¹ s⁻¹)
+  required_inputs: 접촉 분리 Rsh; 신뢰 가능한 nS; μcon=1/(q nS Rsh) 적용 조건
+  required_annotations: 밀도·저항 유효 영역; 모델 가정; μFE와 별도 표기
+  caption_template: 접촉을 분리한 Rsh와 신뢰 가능한 nS로 μcon을 평가한다. gm에서 계산한 μFE를 이 그림의 값으로 대체하지 않는다.
+  visibility_condition: 접촉 분리 Rsh와 신뢰 가능한 양의 nS, 전도 모델이 모두 검증됨
+- id: polarity_current
+  title: 같은 |Vds|의 양·음 바이어스 전류
+  x_axis: Vg (V)
+  y_axis: Id(+|Vds|), Id(−|Vds|) (A)
+  required_inputs: 동일 |Vds|의 비교 승인된 ± 데이터; Vg 매칭; 원래 protocol
+  required_annotations: 부호 보존 Id; ±극성; 허용된 유일한 비교 변수; 공통 평가 영역과 원래 범위
+  caption_template: 같은 |Vds|의 두 극성을 부호를 보존하여 비교한다. 크기 비교를 추가하면 별도 |Id| 표기를 사용하며 원래 스윕 범위와 이력 차이를 숨기지 않는다.
+  visibility_condition: 극성 비교의 조건 검증 통과; 미확인 overlay는 정량 비교와 분리
+- id: rr_gate
+  title: 게이트 의존 정류비
+  x_axis: Vg (V)
+  y_axis: RR (무차원), 로그 축
+  required_inputs: 같은 |Vds|의 I+와 I−; pair 승인; 각 전류 floor; 유효 매칭점
+  required_annotations: RR=1; RR<1 유지; 검출한계 bound 부등호; 미확인/제외 구간
+  caption_template: RR은 항상 |I(+|Vds|)|/|I(−|Vds|)|로 계산한다. 분모 미검출은 검증된 floor에 따른 하한 또는 보류이며, 정확한 RR peak로
+    표시하지 않는다.
+  visibility_condition: pair 승인 + 유효 전류 또는 근거 있는 bound; 필요한 floor 미확인은 보류
+- id: conductance_pair
+  title: 게이트 의존 직류 전도도
+  x_axis: Vg (V)
+  y_axis: G+, G− (S)
+  required_inputs: 동일 |Vds|≠0의 실제 전류; pair 승인; 부호·단자 기준
+  required_annotations: G+=I+/|Vds|; G−=I−/(−|Vds|); 부호를 임의 변경하지 않음
+  caption_template: 각 극성의 실제 Vds로 전류를 나눈 직류 전도도이다. 비선형 소자에서 이 값은 gds와 다르며 Vds=0에서는 계산하지 않는다.
+  visibility_condition: 승인된 ± pair, 유효 전류, 유한한 비영 Vds
+- id: delta_g
+  title: 전도도 크기의 극성 차이
+  x_axis: Vg (V)
+  y_axis: ΔG = |G+|−|G−| (S)
+  required_inputs: 동일 조건의 유효 G+, G−
+  required_annotations: 0 기준선; 유효 평가 구간; 원래 조건
+  caption_template: 두 극성의 전도도 크기 차이를 표시한다. RR과 같은 전류에서 파생된 양이므로 독립적인 실험 증거로 중복 계산하지 않는다.
+  visibility_condition: 유효한 G pair가 있음
+- id: ag
+  title: 정규화 전도도 비대칭
+  x_axis: Vg (V)
+  y_axis: AG (무차원)
+  required_inputs: 유효 G pair; |G+|+|G−|>0; 검출한계 검증
+  required_annotations: AG=0; −1≤AG≤1 검산; 유효 구간
+  caption_template: AG는 전도도 크기 합으로 정규화한 극성 비대칭이다. 합이 0이거나 유효성을 검증할 수 없는 영역에서는 값을 출력하지 않는다.
+  visibility_condition: 유효 G pair와 양의 분모가 있음
+- id: gm_polarity
+  title: 극성별 트랜스컨덕턴스
+  x_axis: Vg (V)
+  y_axis: gm+, gm− (S)
+  required_inputs: 극성별 고정 Vds gate 미분; 승인된 비교 구간; 동일 미분 설정 또는 차이 고지
+  required_annotations: 부호 보존; 원시·평활 미분 구분; 끝점; 실제 Vds
+  caption_template: Id의 부호를 보존해 미분한 극성별 gm을 비교한다. 미분 창이나 끝점 처리 차이가 곡선 차이를 만들지 않았는지 함께 확인한다.
+  visibility_condition: 승인된 ± gate pair에서 양쪽 gm 추출 가능
+- id: gm_over_vds
+  title: 게이트에 따른 직류 전도도 변화율
+  x_axis: Vg (V)
+  y_axis: gm/Vds = ∂G/∂Vg (S/V), 고정 Vds
+  required_inputs: 극성별 gm; 실제 고정 Vds≠0; 비교 승인
+  required_annotations: 실제 Vds로 나눔; 고정 Vds 조건; 부호 보존
+  caption_template: 고정된 비영 Vds에서 gm/Vds는 Id/Vds의 gate 미분이다. 이 값 자체를 이동도나 output 미분 전도도라고 부르지 않는다.
+  visibility_condition: 양쪽 gm 및 비영 고정 Vds, pair 검증이 있음
+- id: gm_normalized_signed
+  title: 정규화 gm — 부호 보존
+  x_axis: Vg (V)
+  y_axis: gm / D (무차원), D>0
+  required_inputs: 유효 gm; D=max|gm|의 평가 구간과 shared/per-curve 규칙
+  required_annotations: 정규화 범위; D의 실제 값·단위; 동일/개별 분모; 끝점 제외
+  caption_template: 양의 분모 D로만 나누어 gm의 부호를 보존한다. 곡선별 정규화는 모양 비교용이며 원래 진폭의 차이를 제거한다.
+  visibility_condition: 유효한 양의 정규화 분모와 구간 정의가 있음
+- id: gm_normalized_abs
+  title: 정규화 gm — 절댓값
+  x_axis: Vg (V)
+  y_axis: '|gm| / D (무차원), D>0'
+  required_inputs: gm; signed 버전과 동일한 D 및 평가 구간
+  required_annotations: '|gm| 명시; D; 부호 정보가 제거되었음'
+  caption_template: 부호 보존 버전과 같은 분모로 |gm|을 정규화한다. 절댓값 변환으로 부호 정보가 사라진 그림임을 명시한다.
+  visibility_condition: signed 정규화와 같은 D 및 구간으로 생성 가능
+- id: rr_bias
+  title: 선택 Vg의 정류비 — |Vds| 의존성
+  x_axis: '|Vds| (V), 0 제외'
+  y_axis: RR (무차원), 로그 축
+  required_inputs: 실제 양·음 output; 같은 Vg; |Vds| 매칭; floor 검증
+  required_annotations: RR=1; 공통 |Vds| 범위; bound; Vds=0 제외
+  caption_template: 실제 output의 같은 |Vds| 쌍으로 RR을 평가한다. 0 V에서 비를 정의하거나 저전압 RR→1 경향을 결과 없이 가정하지 않는다.
+  visibility_condition: 동일 Vg의 ±output pair와 비영 |Vds| 매칭점이 있음
+- id: g_bias
+  title: 직류 전도도 — 드레인 바이어스 의존성
+  x_axis: Vds (V), 0은 계산 제외
+  y_axis: G = Id/Vds (S)
+  required_inputs: 실제 output; Id, Vds≠0; 선택 Vg; 유효 전류
+  required_annotations: 0 V 공백; Vg별 구분; gds와 별도 그래프
+  caption_template: 비영 Vds에서 계산한 직류 전도도의 바이어스 의존성을 표시한다. 0 V의 작은 신호 전도도가 필요하면 별도 output 미분 또는 국소 회귀로 평가하고
+    이름을 구분한다.
+  visibility_condition: 비영 Vds의 실제 output이 있음
+- id: rr_transition
+  title: RR 감소가 완만해지는 전환점
+  x_axis: Vg (V)
+  y_axis: RR 및 검증된 전환점 기준량, 각각 단독 그림 권장
+  required_inputs: 유효 RR 곡선; 사전에 정의된 알고리즘·창·기준·구간; 민감도 검증
+  required_annotations: 단순 최소값과 다른 표식; 전환 구간; 탐색 경계; 판정 불가 영역
+  caption_template: 이 연구의 RR ‘최저점’은 감소하다 완만해지는 전환점을 뜻한다. 알고리즘이 정의·검증되지 않으면 수치와 점표식을 생성하지 않으며, 단순 argmin과
+    구별한다.
+  visibility_condition: 명시된 전환점 알고리즘과 적용 구간·민감도 검증이 있음

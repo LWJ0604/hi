@@ -1,0 +1,316 @@
+{# Formatting template only. Run schema + semantic checks before rendering. No extraction is performed here. #}
+{%- set status_labels = {'confirmed':'확인된 값','candidate':'모델·구간 검증이 필요한 후보','on_hold':'조건 확인 전 보류','no_measurement':'필요한 측정 없음'} -%}
+{%- macro sources_md(refs) -%}
+{%- for sid in refs -%}
+{%- if sid in sources -%}
+{%- set s = sources[sid] -%}
+{% if not loop.first %} · {% endif %}{% if s.link_validated and s.raw_path %}[{{ s.label }}](<{{ s.raw_path }}>){% else %}{{ s.label }} (원본 링크 확인 전){% endif %}
+{%- endif -%}
+{%- endfor -%}
+{%- endmacro -%}
+{%- macro value_md(r) -%}
+{{ r.relation or '' }}{{ r.get('display_value') if r.get('display_value') is not none else r.value }} {{ r.unit }}{% if r.value_kind in ['lower_bound','upper_bound'] %} ({{ '하한' if r.value_kind == 'lower_bound' else '상한' }}){% endif %}
+{%- endmacro -%}
+{%- macro figure_md(fid, level='###') %}
+{% if fid in figures and figures[fid].state == 'ready' and figures[fid].render_verified %}
+{% set f = figures[fid] %}
+{{ level }} {{ f.title }}
+
+![{{ f.title }} — {{ f.x_axis }} / {{ f.y_axis }}](<{{ f.image_path }}>)
+
+**그림 설명.** {{ f.caption.observation }} {{ f.caption.conditions }}{% if f.caption.limitation %} {{ f.caption.limitation }}{% endif %}
+
+**자료:** {{ sources_md(f.source_refs) }} · [그림의 원본·추출 수치](<{{ f.plot_data_path }}>)
+{% endif %}
+{% endmacro -%}
+{%- set selected = namespace(fet=[], drain=[], raw=[], hero=None, headlines=[]) -%}
+{%- if summary.hero_figure_id in figures and figures[summary.hero_figure_id].state == 'ready' and figures[summary.hero_figure_id].render_verified -%}
+{%- set selected.hero = summary.hero_figure_id -%}
+{%- endif -%}
+{%- for fid in layout.raw_figure_ids -%}
+{%- if fid in figures and figures[fid].state == 'ready' and figures[fid].render_verified and fid != selected.hero -%}
+{%- set selected.raw = selected.raw + [fid] -%}
+{%- endif -%}
+{%- endfor -%}
+{%- for group, ids in [('fet',layout.fet_module_ids),('drain',layout.drain_module_ids)] -%}
+{%- for mid in ids if mid in modules -%}
+{%- set m = modules[mid] -%}
+{%- set check = namespace(result_count=0, figure_count=0) -%}
+{%- for rk,r in m.results.items() -%}
+{%- if r.display_approved and r.status in ['confirmed','candidate'] and r.value is not none -%}
+{%- set check.result_count = check.result_count + 1 -%}
+{%- endif -%}
+{%- endfor -%}
+{%- for fid in m.figure_ids -%}
+{%- if fid in figures and figures[fid].state == 'ready' and figures[fid].render_verified -%}
+{%- set check.figure_count = check.figure_count + 1 -%}
+{%- endif -%}
+{%- endfor -%}
+{%- if m.display_approved and m.status in ['confirmed','candidate'] and check.result_count > 0 and check.figure_count > 0 and (group != 'drain' or device.analysis_context == 'drain_fold') -%}
+{%- if group == 'fet' -%}{%- set selected.fet = selected.fet + [mid] -%}
+{%- else -%}{%- set selected.drain = selected.drain + [mid] -%}{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+{%- endfor -%}
+{%- for item in summary.headline_metrics -%}
+{%- if item.module_id in modules and item.result_key in modules[item.module_id].results -%}
+{%- set r=modules[item.module_id].results[item.result_key] -%}
+{%- if r.status == 'confirmed' and r.display_approved and r.value is not none and (item.module_id in selected.fet or item.module_id in selected.drain) -%}
+{%- set selected.headlines=selected.headlines+[r] -%}
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+---
+type: fet-research-report
+profile: {{ report.profile }}
+template_version: "{{ report.template_version }}"
+report_format: fet-template-report-1
+analysis_version: {{ report.analysis_version|tojson }}
+metadata_status: {{ report.get('metadata_status')|tojson }}
+device_name: {{ device.name|tojson }}
+metadata_review_required: {{ report.get('metadata_review_required', true)|tojson }}
+measurement_date: {{ report.get('measurement_date')|tojson }}
+tags:
+  - research/fet
+---
+
+# {{ report.title or 'FET 측정 보고서 — 측정 입력 전' }}
+
+**{{ device.name or '소자 정보 확인 전' }}**{% if device.material %} · {{ device.material }}{% endif %}{% if device.structure_summary %} · {{ device.structure_summary }}{% endif %}
+
+## A. 측정 개요
+
+**측정 목적**  
+{{ report.purpose or '측정 목적 확인 전입니다.' }}
+
+**실제 측정일:** {{ report.measurement_date_display or '확인 전' }} · **날짜 근거:** {{ report.measurement_date_source_display or '파일별 확인이 필요합니다.' }}  
+**핵심 조건:** {{ report.conditions_summary or '조건 확인 전입니다.' }}
+
+{% if summary.observations %}**핵심 관찰**  
+{% for observation in summary.observations[:3] %}{{ observation }}  
+{% endfor %}{% endif %}
+{% if summary.unresolved_statement %}**아직 판단할 수 없는 점:** {{ summary.unresolved_statement }}{% endif %}
+{% if selected.hero %}{{ figure_md(selected.hero) }}{% endif %}
+{% if selected.headlines %}
+### 핵심 수치
+
+| 핵심 수치 | 값 · 단위 | 평가 조건 | 근거 |
+|:--|--:|:--|:--|
+{% for r in selected.headlines[:3] -%}
+| {{ r.label }} | {{ value_md(r) }} | {{ r.evaluation.summary }} | [추출 근거](#{{ r.detail_anchor }}) |
+{% endfor %}
+{% endif %}
+{% if selected.hero or selected.raw or selected.fet or selected.drain %}
+**부호 표기:** ‘Signed’는 **부호를 보존한**이라는 뜻입니다. Id와 gm은 원래 부호를 유지하며, 절댓값 그래프에는 |Id|·|gm|을 표시합니다.
+{% endif %}
+{% if comparisons %}
+## 비교 조건 확인
+{% for cid,c in comparisons.items() %}
+**{{ c.question }}** — {{ {'approved_for_scope':'해당 범위 비교 승인','unverified':'조건 확인 전','rejected':'정량 비교 불가'}[c.status] }}  
+**비교 의도:** {{ c.varied_dimensions|join(', ') }}  
+**판정 근거:** {{ c.reason or '조건 확인 전' }}
+{% if c.common_domain %}**공통 평가 영역:** {{ c.common_domain }}{% endif %}
+{% if c.get('limitations') %}**한계:** {{ c.get('limitations') }}{% endif %}
+{% endfor %}
+{% endif %}
+{% if selected.raw %}
+## B. 측정 곡선과 계산 근거
+{% for fid in selected.raw %}{{ figure_md(fid) }}{% endfor %}
+{% elif selected.hero in layout.raw_figure_ids %}
+## B. 측정 곡선과 계산 근거
+
+A의 대표 그래프가 이번 측정의 전체 원시 곡선입니다. 조건·방향·범위와 원본/추출 자료 링크는 해당 그림에서 확인할 수 있습니다.
+{% endif %}
+{% for letter,title,ids in [('C','FET·관측 지표 검토',selected.fet),('D','Drain-fold 정류·전도도 분석',selected.drain)] %}
+{% if ids %}
+## {{ letter }}. {{ title }}
+{% if letter == 'D' %}
+**고정 정의**
+
+RR = |I(+|Vds|)| / |I(−|Vds|)|  
+G+ = I(+|Vds|)/(+|Vds|), G− = I(−|Vds|)/(−|Vds|)  
+ΔG = |G+|−|G−|, AG = ΔG/(|G+|+|G−|)
+
+RR의 분자·분모를 바꾸지 않습니다. Vds=0에서 Id/Vds를 계산하지 않습니다. ‘RR 최저점’이라는 연구용 표현은 단순 argmin이 아니라 감소 후 평탄화 전환점입니다.
+{% endif %}
+{% for mid in ids %}
+{% set m=modules[mid] %}
+### {{ m.title }}
+
+{{ m.meaning }}
+{% for fid in m.figure_ids %}{% if fid != selected.hero %}{{ figure_md(fid,'####') }}{% else %}
+**근거 그래프:** A의 대표 그래프를 참조하세요.
+{% endif %}{% endfor %}
+#### 추출값과 평가 조건
+{% for rk,r in m.results.items() %}
+{% if r.display_approved and r.status in ['confirmed','candidate'] and r.value is not none %}
+**{{ r.label }}** — {{ value_md(r) }} · **{{ status_labels[r.status] }}**  
+평가: {{ r.evaluation.summary }}  
+추출: {{ r.extraction.summary }} · 근거: {{ sources_md(r.source_refs) }} · [상세](#{{ r.detail_anchor }})
+{% if r.get('bound_reason') %}**부등호의 이유:** {{ r.get('bound_reason') }}{% endif %}
+{% endif %}{% endfor %}
+{% if m.get('method_summary') %}**추출 방법:** {{ m.get('method_summary') }}{% endif %}
+{% if m.get('observation') %}**해석:** {{ m.get('observation') }}{% endif %}
+> **주의점**  
+> {{ m.caution }} {{ m.get('data_specific_caution') or '' }}
+{% endfor %}{% endif %}{% endfor %}
+{% if interpretation.observed_fact or interpretation.model_based_estimate or interpretation.unverified_hypothesis or next_actions %}
+## E. 결과 해석과 다음 확인
+{% if interpretation.observed_fact %}
+### 관측 사실
+
+{{ interpretation.observed_fact }}  
+**직접 근거:** {{ sources_md(interpretation.observed_evidence_refs) }}
+{% endif %}
+{% if interpretation.model_based_estimate %}
+### 모델을 적용한 추정
+
+{{ interpretation.model_based_estimate }}  
+**모델·가정:** {{ interpretation.model_and_assumptions }}  
+**근거와 한계:** {{ interpretation.model_evidence_and_limits }}
+{% endif %}
+{% if interpretation.unverified_hypothesis %}
+### 아직 검증하지 않은 가설
+
+{{ interpretation.unverified_hypothesis }}  
+**가설을 구분할 관측:** {{ interpretation.discriminating_observation }}
+{% endif %}
+{% if next_actions %}
+### 다음에 확인할 가장 작은 행동
+
+{% for a in next_actions[:1] %}{{ loop.index }}. {{ a.action }} — {{ a.condition_and_decision }}
+{% endfor %}{% endif %}{% endif %}
+## F. 근거와 재현 정보
+{% if report.get('audit_links') %}
+> [!info]- 전체 계산·QC·공유 근거 파일
+{% for link in report.audit_links -%}
+> - [{{ link.label }}](<{{ link.path }}>)
+{% endfor %}
+>
+> 기존 계산과 QC, 원본점·단위 변환·공유 provenance를 그대로 보존한 파일입니다. 정규화 JSON의 참조는 metric_evidence.json에서 확인하세요. 표시에 사용하지 않은 지표도 전체 CSV와 기존 기록에서 열람할 수 있습니다.
+{% endif %}
+{% if report.get('metadata_rows') %}
+> [!info]- 측정 조건 — 값·출처·확인 상태
+> | 조건 | 기록된 값·단위 | 출처 | 상태 | 다른 근거 |
+> |:--|:--|:--|:--|:--|
+{% for row in report.metadata_rows -%}
+> | {{ row.label }} | {{ row.value }} {{ row.unit }} | {{ row.source }} | {{ row.status }} | {{ row.other_evidence }} |
+{% endfor %}
+>
+> 값·상태·확인 이력은 원래 기록에서 읽었습니다. 사용자 확인은 GUI 메타데이터 검토의 별도 override 이력에 저장하세요.
+{% endif %}
+{% if device.structure_summary or device.length.value is not none or device.width.value is not none or device.cins_areal.value is not none %}
+> [!info]- 소자 구조·치수·정전용량과 입력 가정
+> 구조: {{ device.structure_summary or '확인 전' }}  
+> 단자: {{ device.get('terminal_mapping') or '확인 전' }}  
+{% for qname,q in [('L',device.length),('W',device.width),('면적당 Cins',device.cins_areal)] -%}
+{% if q.value is not none -%}
+> **{{ qname }}:** {{ q.value }} {{ q.unit }}; {{ q.basis }}  
+> 정의: {{ q.get('definition') or '정의 확인 전' }}; 근거: {{ sources_md(q.source_refs) }}  
+{% endif -%}
+{% endfor -%}
+> 전체 소자 입력: `{{ device|tojson }}`
+{% endif %}
+{% if sources %}
+> [!info]- 원본 데이터와 실제 측정일
+{% for sid,s in sources.items() -%}
+> **{{ s.label }}** — {{ sources_md([sid]) }}  
+> 실제 측정일: {{ s.confirmed_measurement_date or '확인 전' }}; 확인 범위: {{ s.date_confirmation_scope or '확인 전' }}  
+> 확인자·근거: {{ s.get('date_confirmed_by') or '미확인' }} / {{ s.get('date_confirmation_evidence') or '미확인' }}  
+> 원본 위치: {{ s.sheet or '시트 해당 없음 또는 확인 전' }}; {{ s.cell_ranges|join(', ') }}  
+> Keithley 저장 시각(참고): {{ s.instrument_saved_at or '미확인' }}  
+> 파일 수정 시각(참고): {{ s.get('file_modified_at') or '미확인' }}  
+> 컬럼 매핑: `{{ s.get('column_mapping',{})|tojson }}`  
+> SHA-256: {{ s.get('sha256') or '미기록' }}
+>
+{% endfor %}{% endif %}
+{% if runs %}
+> [!info]- 원래 sweep 조건·block·측정 이력
+{% for rid,run in runs.items() -%}
+> **{{ run.label }}** — {{ run.kind }}  
+> {{ run.protocol.swept_variable }}: {{ run.protocol.start_V }} → {{ run.protocol.stop_V }} V; 방향: {{ run.protocol.direction }}; block: {{ run.protocol.get('block_label') or '확인 전' }}  
+> delay/hold: {{ run.protocol.sweep_delay_s }} / {{ run.protocol.hold_s }} s; 광 조건: {{ run.protocol.light_state }}  
+> 전압·전류 기준: {{ run.protocol.get('voltage_reference') or '확인 전' }} / {{ run.protocol.get('current_sign_convention') or '확인 전' }}  
+> 이력: {{ run.protocol.history or '확인 전' }}  
+> 데이터 단위: `{{ run.get('units',{})|tojson }}`  
+> 전체 원래 조건: `{{ run.protocol|tojson }}`  
+> 원본 기록·충돌: {{ run.get("notes") or "미기록" }}
+>
+{% endfor %}{% endif %}
+{% if comparisons %}
+> [!info]- 비교 판정의 세부 근거
+{% for cid,c in comparisons.items() -%}
+> **{{ c.question }}**  
+> 원래 영역: {{ c.original_domains|join(' / ') }}  
+> 매칭·보간: {{ c.get('alignment') or '없음' }} / {{ c.get('interpolation') or '없음' }}  
+> 이력 검토: {{ c.get('history_review') or '확인 전' }}  
+> 조건별 판정: `{{ c.checks|tojson }}`
+>
+{% endfor %}{% endif %}
+{% if floors %}
+> [!info]- 검출한계 검증
+{% for floorid,f in floors.items() -%}
+> **{{ floorid }}** — {{ f.value_A if f.value_A is not none else '미확인' }} A; 검증: {{ f.verified }}  
+> 방법·범위: {{ f.method or '확인 전' }}; {{ f.get('bias_domain') or '범위 확인 전' }}  
+> 근거: {{ sources_md(f.source_refs) }}  
+> 전체 조건: `{{ f|tojson }}`
+>
+{% endfor %}{% endif %}
+{% for mid,m in modules.items() %}
+{% if m.results %}
+> [!info]- {{ m.title }} — 추출 기록
+{% for rk,r in m.results.items() -%}
+> <a id="{{ r.detail_anchor }}"></a>
+> **{{ r.label }}** — {{ status_labels[r.status] }}  
+> 원본: {{ sources_md(r.source_refs) }}  
+> 추출식: {{ r.extraction.formula or '해당 없음 또는 확인 전' }}  
+> 사용 구간: {{ r.extraction.included_ranges|join('; ') }}  
+> 제외점: `{{ r.extraction.excluded_points|tojson }}`  
+> 전처리·계산 설정: `{{ r.extraction.settings|tojson }}`  
+> 평가 조건: `{{ r.evaluation|tojson }}`  
+> 검증 상태: `{{ r.validation|tojson }}`  
+{% if r.extraction.point_lineage_path -%}
+> [원본 셀/행 → 추출점 매핑](<{{ r.extraction.point_lineage_path }}>)  
+{% endif -%}
+> 단위 변환: {{ r.extraction.get('unit_conversions',[])|join('; ') }}  
+> 모델·가정: {{ r.extraction.get('assumptions',[])|join('; ') }}  
+> 계산 버전: {{ r.extraction.get('version') or '미기록' }}  
+> 불확도: {% if r.get('uncertainty') %}`{{ r.get('uncertainty')|tojson }}`{% else %}보고할 검증된 불확도 없음{% endif %}
+>
+{% endfor %}{% endif %}{% endfor %}
+{% if quality.checks or quality.review_summary %}
+> [!info]- QC와 정량 사용 제한
+{% for q in quality.checks -%}
+> **{{ q.name }}:** {{ q.status }} — {{ q.reason }}  
+{% endfor -%}
+> {{ quality.review_summary or '' }}  
+> {{ quality.uncertainty_note or '' }}
+{% endif %}
+{% if availability.no_measurement or availability.on_hold or availability.candidates or availability.calculation_failures %}
+> [!info]- 본문에서 생략한 항목
+{% if availability.no_measurement -%}> **필요한 측정 없음:** {{ availability.no_measurement|join('; ') }}  
+{% endif -%}
+{% if availability.on_hold -%}> **조건 확인 전 보류:** {{ availability.on_hold|join('; ') }}  
+{% endif -%}
+{% if availability.candidates -%}> **검토할 후보:** {{ availability.candidates|join('; ') }}  
+{% endif -%}
+{% if availability.calculation_failures -%}> **계산 실패:** {{ availability.calculation_failures|join('; ') }}
+{% endif %}{% endif %}
+{% set failed = namespace(items=[]) %}
+{% for fid,f in figures.items() %}{% if f.state == 'failed' %}{% set failed.items=failed.items+[f] %}{% endif %}{% endfor %}
+{% if failed.items %}
+> [!warning]- 그림 생성 실패
+{% for f in failed.items -%}
+> **{{ f.title }}:** {{ f.get('failure_reason') }} (단계: {{ f.get('failure_stage') or '미기록' }})  
+{% endfor %}{% endif %}
+> [!info]- 버전과 검토 이력
+> 보고서 생성 시각: {{ report.generated_at or '미기록' }}  
+> 템플릿: {{ report.template_version }}; 분석 버전: {{ report.get('analysis_version') or '미기록' }}  
+> 내부 식별자: {{ report.get('internal_id') or '미기록' }}  
+> 검토 이력: {{ report.get('review_history')|join('; ') if report.get('review_history') else '미기록' }}
+{% if references %}
+### 보고 기준과 참고 자료
+
+{% for reference in references %}[{{ reference.label }}](<{{ reference.url }}>) — {{ reference.verification_scope }}
+
+{% endfor %}{% endif %}

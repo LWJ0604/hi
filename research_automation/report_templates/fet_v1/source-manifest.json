@@ -1,0 +1,12 @@
+{
+  "source_zip_sha256": "169aa97e25eb262b60947bf33c2ed71f0179220c4f2b1a3ad359f83bab6c506f",
+  "source_template_version": "1.0.0",
+  "source_files_sha256": {
+    "report.md.j2": "3a3b00f2ced15ccca5123b384c4475b0cd791e7a4fa88109e998c04f85aa8840",
+    "report.schema.json": "dbb0e6985191bab925377ea1ee1656d4bfedf2d8f40d8e92ad324a22cda6e9b5",
+    "empty_report.json": "b5ee02bb0a89e9f5de06d16aac6ebe10fe2f835de19ea77d5dc8ded97200bf42",
+    "display_rules.yaml": "93e1880df23bba44c35a895c997e327016bec977f108fcd0261875321092fe9b",
+    "module_catalog.yaml": "226d0db220c58f4fe531e016c34766ab6083b97e6d29e760ada9056774240100",
+    "graph_catalog.yaml": "8b667df86066d05d5239ddb02de635ddfeb3ba28a2b3935d7e503dd92f2d33a0"
+  }
+}

@@ -1,4 +1,4 @@
-__version__ = "1.6.0"
+__version__ = "1.7.0"
 
 from functools import lru_cache
 import hashlib
@@ -10,7 +10,8 @@ def code_fingerprint():
     """One fingerprint per process; restart watch after editing source files."""
     root = Path(__file__).resolve().parent
     fingerprint = hashlib.sha256()
-    for file in sorted(root.rglob("*.py")):
+    files=[*root.rglob('*.py'), *root.joinpath('report_templates').rglob('*')]
+    for file in sorted(p for p in files if p.is_file()):
         fingerprint.update(file.relative_to(root).as_posix().encode())
         fingerprint.update(b"\0")
         fingerprint.update(file.read_bytes())

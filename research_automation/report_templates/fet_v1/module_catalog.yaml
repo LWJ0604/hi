@@ -1,0 +1,446 @@
+version: 1.0.0
+modules:
+- id: gm
+  title: gm · 게이트 제어 민감도
+  meaning: 고정 Vds에서 gate 전압 변화에 따른 drain 전류의 변화율입니다.
+  figure_ids:
+  - gm
+  result_fields:
+    raw_peak: 원시 미분 peak
+    smoothed_peak: 평활 미분 peak
+  extraction_guidance: gm=∂Id/∂Vg. 실제 Vg 간격으로 미분하며 평활 전·후 추출을 별도 보존한다.
+  evaluation_guidance: 고정 Vds, 방향/block, peak 선택 방식, peak Vg, 미분 창의 점수·전압 폭, 끝점 정책
+  caution: gm은 원래 부호가 있는 양이다. 절댓값 peak를 선택해도 그 지점의 signed gm을 별도 보존한다.
+  visibility_condition: 실제 단조 gate block과 미분 설정이 있음
+  modes: &id001
+  - id_vg
+  - comparison
+  settings_fields:
+  - derivative.method
+  - derivative.window_points
+  - derivative.window_voltage_V
+  - derivative.polyorder
+  - derivative.nonuniform_grid_policy
+  - derivative.endpoint_policy
+  - derivative.segment_policy
+  - peak.selection
+- id: vt
+  title: VT · 문턱전압
+  meaning: 선택한 전류 기준 또는 모델에 따라 전달 곡선에서 정의한 문턱전압입니다.
+  figure_ids:
+  - vt
+  result_fields:
+    threshold: VT
+  extraction_guidance: linear-extrapolation / constant-current / Y-function 등 실제 사용 방법과 식을 명시한다.
+  evaluation_guidance: Vds, 정/역 방향, 기준 전류의 절대값 또는 폭 정규화, 피팅 Vg 구간, 절편 및 보정
+  caution: 방법이 달라지면 같은 VT로 비교하지 않는다. 선형 외삽의 x절편과 finite-Vds 보정 후 VT를 구별한다.
+  visibility_condition: 추출 기준과 실제 평가 구간이 있음
+  modes: *id001
+  settings_fields:
+  - vt.method
+  - vt.current_criterion
+  - vt.fit_interval
+  - vt.x_intercept_V
+  - vt.finite_vds_correction
+  - vt.carrier_convention
+- id: y_function
+  title: Y-function · 모델 기반 추출
+  meaning: 전류와 gm을 결합해 특정 수송 모델의 선형성을 검토하는 변환량입니다.
+  figure_ids:
+  - y_function
+  result_fields:
+    threshold_candidate: Y 기반 VT
+  extraction_guidance: 표준 n형 양의 Id·gm 가지의 Y=Id/√gm 또는 명시한 별도 부호 변환; 피팅과 잔차를 기록한다.
+  evaluation_guidance: Vds, Y 정의, 유효 gm 영역, 피팅 구간, 잔차, 모델 가정 및 검증 상태
+  caution: gm≤0, gm≈0, 음의 Vds에서 표준 식을 무조건 적용하지 않는다. 미검증 Y 변환 결과는 탐색 후보이다.
+  visibility_condition: 실제로 유한한 Y와 피팅 근거가 있음; 미검증 모델은 candidate
+  modes: *id001
+  settings_fields:
+  - y.definition
+  - y.sign_mapping
+  - y.gm_validity_mask
+  - y.model_name
+  - y.model_validation
+  - y.fit_interval
+  - y.residuals
+- id: ss
+  title: SS · 서브스레시홀드 스윙
+  meaning: 전류 크기를 한 decade 변화시키는 데 필요한 gate 전압 변화입니다.
+  figure_ids:
+  - ss_window
+  - ss_current
+  result_fields:
+    minimum: 최소 SS
+    interval_mean: 구간 평균 SS
+  extraction_guidance: SS=10³/|d log10|Id|/dVg|. local-min과 구간 평균의 계산 규칙을 각각 보존한다.
+  evaluation_guidance: Vds, 방향, Vg 구간, I_low/I_high, 실제 decade 폭, 창 크기, 평균의 가중·집계 정의
+  caution: 최소 한 점만 강조하지 않는다. 누설·검출한계·반전점 영향을 제거한 subthreshold 구간을 검증한다.
+  visibility_condition: 유효한 subthreshold 구간과 floor/누설 검토가 있음
+  modes: *id001
+  settings_fields:
+  - ss.derivative
+  - ss.vg_interval_V
+  - ss.current_interval_A
+  - ss.current_decades
+  - ss.minimum_window
+  - ss.mean_definition
+  - ss.leakage_review
+- id: mu_fe
+  title: μFE · 유효 전계효과 이동도
+  meaning: gm을 기하학과 gate 정전용량으로 환산한 접촉 영향을 포함하는 유효 이동도입니다.
+  figure_ids:
+  - mu_fe
+  result_fields:
+    evaluated: 평가 μFE
+  extraction_guidance: '검증된 n형 선형 모델: μFE=L·gm/(W·Cins·Vds); SI 계산 후 cm²/(V·s)로 환산한다.'
+  evaluation_guidance: L/W의 정의·단위·출처, 면적당 Cins, Vds, Vg 구간, 입력별 측정/가정 구분, 선형 동작 근거
+  caution: 필수 입력이 없으면 보류한다. 가정 입력·접촉 지배·비선형 구간은 후보이며 μcon을 대신하지 않는다.
+  visibility_condition: L/W/Cins/Vds/gm이 모두 있음; 선형 모델 검증 전은 candidate
+  modes: *id001
+  settings_fields:
+  - mobility.formula
+  - mobility.carrier_sign_convention
+  - mobility.linear_regime_evidence
+  - mobility.si_conversion
+  - mobility.contact_inclusion
+- id: extrema
+  title: Imax/Imin · 측정 범위 내 전류비
+  meaning: 이번 측정의 전체 범위 안에서 얻은 최대·최소 전류 크기와 그 비입니다.
+  figure_ids:
+  - extrema
+  result_fields:
+    imax: 최대 |Id|
+    imin: 최소 |Id|
+    ratio: Imax/Imin
+  extraction_guidance: 원래 전체 sweep의 유효 |Id|에서 극값을 구하고 각각 위치와 해당 전류를 보존한다.
+  evaluation_guidance: 원래 Vg 범위/방향/block, Vds, Imax/Imin의 Vg, floor 상태, 제외 기준
+  caution: 잘라낸 비교 영역의 극값은 ‘공통 구간 극값’으로 별도 이름을 쓴다. 미검출 최소값은 0으로 채우지 않는다.
+  visibility_condition: 원래 전체 측정 범위와 유효 전류 판정이 있음
+  modes: *id001
+  settings_fields:
+  - extrema.domain
+  - extrema.valid_mask
+  - extrema.floor_policy
+- id: on_off
+  title: Ion/Ioff · 지정 동작점 전류비
+  meaning: 사전에 지정한 on/off 바이어스에서 평가한 전류 크기의 비입니다.
+  figure_ids:
+  - on_off
+  result_fields:
+    ion: Ion
+    ioff: Ioff
+    ratio: Ion/Ioff
+  extraction_guidance: 지정된 on/off Vg·Vds에서 실제 측정 또는 승인된 보간으로 평가한다.
+  evaluation_guidance: 두 평가점 각각의 Vg/Vds, 광 조건, 방향, 기준 출처, 보간 허용 오차
+  caution: Imax/Imin을 자동 대체하지 않는다. 정의가 없거나 범위 밖이면 본문 모듈을 생성하지 않는다.
+  visibility_condition: on/off 정의와 실제 평가점이 있음
+  modes: *id001
+  settings_fields:
+  - on_off.on_bias
+  - on_off.off_bias
+  - on_off.definition_source
+  - on_off.interpolation_policy
+- id: gds
+  title: gds · 미분 출력 전도도
+  meaning: 고정 Vg에서 Vds 변화에 대한 Id의 국소 변화율입니다.
+  figure_ids:
+  - gds
+  result_fields:
+    evaluated: 평가 gds
+  extraction_guidance: 실제 output의 gds=∂Id/∂Vds. 원시/평활 미분과 창을 기록한다.
+  evaluation_guidance: Vg, Vds 평가점·구간, 방향/block, 미분 창, 끝점 정책
+  caution: G=Id/Vds와 다른 양이다. Vds=0의 국소 회귀 기울기는 별도 G0 또는 gds(0)로 표기한다.
+  visibility_condition: 미분 가능한 실제 output이 있음
+  modes: &id002
+  - id_vd
+  - comparison
+  settings_fields:
+  - derivative.method
+  - derivative.window_points
+  - derivative.window_voltage_V
+  - derivative.endpoint_policy
+  - gds.zero_bias_fit
+- id: saturation
+  title: Isat · 포화 구간의 전류
+  meaning: 포화가 확인된 output 구간에서 평가한 drain 전류입니다.
+  figure_ids:
+  - saturation
+  result_fields:
+    isat: Isat
+    isat_per_width: Isat/W — W가 확인된 경우만
+  extraction_guidance: 명시한 포화 판정 기준을 통과한 실제 구간에서 평가한다. W가 없으면 절대 전류만 출력한다.
+  evaluation_guidance: Vg/Vds 평가점, 포화 구간, 판정 기준과 유효성, W 출처, 가능한 nS 및 그 모델
+  caution: 최대 전류를 Isat로 자동 명명하지 않는다. 포화 미확인 값은 후보 또는 I_at_bias로만 표시한다.
+  visibility_condition: 포화 검토 가능한 실제 output; confirmed는 포화 검증 완료
+  modes: *id002
+  settings_fields:
+  - saturation.criterion
+  - saturation.interval_V
+  - saturation.validation
+  - saturation.evaluation_bias
+  - saturation.ns_context
+- id: hysteresis
+  title: Hysteresis · 정·역 스윕 차이
+  meaning: 같은 기준으로 평가한 정·역 스윕 사이의 gate 전압 이동입니다.
+  figure_ids:
+  - hysteresis
+  result_fields:
+    shift: ΔVT 또는 ΔVg
+  extraction_guidance: '예: ΔVT=VT(reverse)−VT(forward); 정전류 ΔVg도 같은 부호 관례로 정의한다.'
+  evaluation_guidance: pair ID, 동일 기준, 원래 범위·방향·순서, delay/hold, Vds, 측정 이력
+  caution: 다른 날짜의 drift나 서로 다른 원래 sweep 범위의 차이를 통상적 hysteresis 수치로 자동 합치지 않는다.
+  visibility_condition: 검증된 정·역 pair와 공통 기준이 있음
+  modes: *id001
+  settings_fields:
+  - hysteresis.definition
+  - hysteresis.criterion
+  - hysteresis.pair_id
+  - hysteresis.sign_convention
+- id: dibl
+  title: DIBL · 드레인 바이어스에 따른 문턱전압 변화
+  meaning: 동일 기준 VT가 drain 바이어스 크기에 따라 변하는 정도입니다.
+  figure_ids:
+  - dibl
+  result_fields:
+    coefficient: DIBL
+  extraction_guidance: 'n형 양의 Vds 관례: 10³[VT(low)−VT(high)]/[Vds(high)−Vds(low)] (mV/V). 다른 관례는 식을 명시한다.'
+  evaluation_guidance: low/high Vds, 같은 VT 방법·방향·기준, 두 VT의 provenance, 비교 승인
+  caution: 부호를 뒤집어 양수로 만들지 않는다. ±같은 |Vds|의 VT 차이를 DIBL로 부르지 않는다.
+  visibility_condition: 동일 극성의 서로 다른 |Vds|와 비교 가능한 VT가 있음
+  modes: *id001
+  settings_fields:
+  - dibl.low_bias
+  - dibl.high_bias
+  - dibl.sign_convention
+  - dibl.vt_result_ids
+  - dibl.pair_id
+- id: tlm
+  title: TLM · 접촉과 채널 저항 분리
+  meaning: 길이에 따른 전체 저항 변화를 이용해 접촉 저항 합과 채널 시트 저항을 분리합니다.
+  figure_ids:
+  - tlm
+  - tlm_residual
+  result_fields:
+    contact_sum_width: (Rc,S+Rc,D)·W
+    sheet_resistance: Rsh
+  extraction_guidance: Rtot·W=Rsh·L+(Rc,S+Rc,D)·W. 절편과 기울기를 보존하고 회귀 잔차를 평가한다.
+  evaluation_guidance: 저바이어스 기준, 서로 다른 L 목록, W/단위, 동일 밀도 또는 그에 준하는 검증 조건, 사용 소자·제외점
+  caution: 비대칭 접촉의 절편을 2로 나누지 않는다. RtotW 절편은 Ω가 아니라 Ω·길이 단위이며 폭 정규화를 명시한다.
+  visibility_condition: 실제 길이별 구조와 비교 검증; 확정은 ≥4 distinct L 및 저항 모델 검증; 3개는 탐색 후보만
+  modes: *id002
+  settings_fields:
+  - tlm.rtot_definition
+  - tlm.lengths
+  - tlm.widths
+  - tlm.matching_basis
+  - tlm.low_bias_validation
+  - tlm.regression
+  - tlm.residuals
+  - tlm.contact_symmetry_evidence
+- id: rc_ns
+  title: Rc–nS · 접촉 저항의 밀도 의존성
+  meaning: 접촉을 분리한 저항이 source 쪽 캐리어 밀도에 따라 변하는 양상입니다.
+  figure_ids:
+  - rc_ns
+  result_fields:
+    evaluated: 지정 nS의 접촉 저항
+  extraction_guidance: TLM 또는 독립 접촉 분리 결과를 신뢰 가능한 nS에 대응시킨다.
+  evaluation_guidance: 접촉 합/개별 정의, 폭 정규화, 저항 출처, nS 평가 위치·단위·모델
+  caution: 전체 저항을 Rc로 쓰지 않는다. 신뢰 가능한 nS가 없으면 nS 축을 만들지 않는다.
+  visibility_condition: 접촉 분리 저항과 신뢰 가능한 nS가 모두 있음
+  modes: *id002
+  settings_fields:
+  - density.method
+  - density.spatial_definition
+  - density.capacitance_model
+  - density.reliability
+  - contact.resistance_definition
+- id: rsh_ns
+  title: Rsh–nS · 채널 시트 저항의 밀도 의존성
+  meaning: 접촉을 분리한 채널 시트 저항을 캐리어 밀도별로 비교합니다.
+  figure_ids:
+  - rsh_ns
+  result_fields:
+    evaluated: 지정 nS의 Rsh
+  extraction_guidance: TLM 기울기 또는 four-probe 결과로 얻은 Rsh를 동일 정의의 nS와 대응시킨다.
+  evaluation_guidance: Rsh의 단위 Ω/□, 분리 방식, nS 출처·위치·범위, 공통 유효 조건
+  caution: two-terminal 저항을 채널 시트 저항으로 대체하지 않는다.
+  visibility_condition: 접촉 분리 Rsh와 신뢰 가능한 nS가 모두 있음
+  modes: *id002
+  settings_fields:
+  - density.method
+  - density.spatial_definition
+  - density.reliability
+  - sheet_resistance.extraction
+- id: mu_con_ns
+  title: μcon–nS · 전도 이동도의 밀도 의존성
+  meaning: 접촉을 분리한 채널 전도도와 캐리어 밀도로 계산한 전도 이동도입니다.
+  figure_ids:
+  - mu_con_ns
+  result_fields:
+    evaluated: 지정 nS의 μcon
+  extraction_guidance: 검증된 단일 캐리어 전도 모델에서 μcon=1/(q·nS·Rsh). 밀도·저항·이동도 단위를 일관되게 변환한다.
+  evaluation_guidance: Rsh 및 nS provenance, density 모델·유효성, 평가 nS, 접촉 분리 근거
+  caution: μFE로 대체하지 않는다. fold의 불균일 밀도를 단일 nS로 대표할 수 있는지도 검토한다.
+  visibility_condition: 접촉 분리 Rsh·신뢰 가능한 nS·전도 모델이 모두 검증됨
+  modes: *id002
+  settings_fields:
+  - density.method
+  - density.spatial_definition
+  - density.reliability
+  - conductivity_mobility.model
+  - conductivity_mobility.unit_conversion
+- id: polarity_current
+  title: 극성별 Id · 같은 |Vds| 비교
+  meaning: 같은 drain 전압 크기에서 전류의 방향과 크기를 비교합니다.
+  figure_ids:
+  - polarity_current
+  result_fields:
+    positive_current: I(+|Vds|)
+    negative_current: I(−|Vds|)
+  extraction_guidance: 승인된 ±pair의 같은 Vg에서 부호 보존 전류를 대응시킨다.
+  evaluation_guidance: '|Vds|, 공통 Vg, 원래 양쪽 sweep 범위·방향·block·광 조건·delay·이력, pair 승인'
+  caution: 서로 다른 스트레스 이력을 단순 cropping으로 동일화하지 않는다.
+  visibility_condition: 비교 조건이 승인된 ± 데이터
+  modes: &id003
+  - id_vg
+  - id_vd
+  - comparison
+  settings_fields:
+  - pairing.pair_id
+  - pairing.varied_dimensions
+  - pairing.gate_alignment
+  - pairing.interpolation_policy
+- id: rectification
+  title: RR · 고정 정의의 정류비
+  meaning: 같은 |Vds|에서 양의 바이어스 전류 크기를 음의 바이어스 전류 크기로 나눈 비입니다.
+  figure_ids:
+  - rr_gate
+  result_fields:
+    evaluated: RR
+    numerical_minimum: 수치적 argmin — 요청한 경우만
+  extraction_guidance: RR=|I(+|Vds|)|/|I(−|Vds|)|. 분자·분모를 고정하고 로그 축에 RR=1을 표시한다.
+  evaluation_guidance: Vg, |Vds|, pair ID, 양쪽 전류 floor·범위, exact/bound 구분, 평가 도메인
+  caution: RR<1을 유지한다. 미검출 전류에 epsilon을 넣지 않으며 bound를 실제 peak처럼 해석하지 않는다.
+  visibility_condition: 유효 ±pair 및 전류 정량성 검증; 필요한 floor 미확인은 보류
+  modes: *id003
+  settings_fields:
+  - rr.formula
+  - rr.domain
+  - rr.floor_positive
+  - rr.floor_negative
+  - rr.bound_convention
+  - rr.numerical_minimum_requested
+- id: conductance
+  title: G+·G− · 게이트 의존 직류 전도도
+  meaning: 각 극성에서 흐른 전류를 실제 인가 Vds로 나눈 직류 전도도입니다.
+  figure_ids:
+  - conductance_pair
+  result_fields:
+    positive: G+
+    negative: G−
+  extraction_guidance: G+=I(+|Vds|)/(+|Vds|), G−=I(−|Vds|)/(−|Vds|).
+  evaluation_guidance: '|Vds|≠0, Vg, pair ID, 단자·전류 부호 관례, 각 계산점의 validity'
+  caution: G=Id/Vds와 gds=∂Id/∂Vds는 다르다. 음의 G가 나오면 부호를 고치지 말고 원인을 검토한다.
+  visibility_condition: 유효한 비영 Vds의 ±pair
+  modes: *id003
+  settings_fields:
+  - conductance.definition
+  - conductance.zero_bias_policy
+  - conductance.sign_convention
+- id: conductance_asymmetry
+  title: ΔG·AG · 전도도 비대칭
+  meaning: 전도도 크기의 극성 차이를 절대 차이와 정규화 비대칭으로 나타냅니다.
+  figure_ids:
+  - delta_g
+  - ag
+  result_fields:
+    difference: ΔG
+    asymmetry: AG
+  extraction_guidance: ΔG=|G+|−|G−|; AG=ΔG/(|G+|+|G−|).
+  evaluation_guidance: Vg, |Vds|, 유효 G pair, 분모>0, 검출한계 검토
+  caution: 같은 전류로부터 RR과 AG가 파생되므로 두 결과를 독립 검증으로 세지 않는다.
+  visibility_condition: 유효 G pair; AG는 양의 분모 필요
+  modes: *id003
+  settings_fields:
+  - asymmetry.definition
+  - asymmetry.denominator_validation
+  - asymmetry.rr_identity_check
+- id: gm_polarity
+  title: 극성별 gm·gm/Vds · 게이트 제어 비교
+  meaning: 전류의 gate 민감도와 직류 전도도의 gate 민감도를 극성별로 비교합니다.
+  figure_ids:
+  - gm_polarity
+  - gm_over_vds
+  result_fields:
+    gm_positive: gm(+Vds)
+    gm_negative: gm(−Vds)
+    rate_positive: gm(+Vds)/(+Vds)
+    rate_negative: gm(−Vds)/(−Vds)
+  extraction_guidance: gm=∂Id/∂Vg; 고정 Vds≠0에서 gm/Vds=∂(Id/Vds)/∂Vg.
+  evaluation_guidance: pair ID, ±Vds, 평가 Vg, 동일 미분·평활 설정 및 유효 범위
+  caution: gm/Vds의 단위는 S/V이다. 이동도 또는 gds라고 표시하지 않는다.
+  visibility_condition: 비교 가능한 ±gate 미분 결과와 비영 고정 Vds
+  modes: *id001
+  settings_fields:
+  - pairing.pair_id
+  - derivative.method
+  - derivative.window_voltage_V
+  - derivative.endpoint_policy
+- id: gm_normalized
+  title: 정규화 gm · 부호 보존과 절댓값
+  meaning: gm의 모양을 양의 기준 크기로 정규화하여 비교합니다.
+  figure_ids:
+  - gm_normalized_signed
+  - gm_normalized_abs
+  result_fields:
+    normalizer_positive: D+ 또는 Dcommon
+    normalizer_negative: D− 또는 Dcommon
+  extraction_guidance: D=max_valid|gm|>0; 부호 보존 gm/D와 절댓값 |gm|/D를 별도로 표시한다.
+  evaluation_guidance: shared/per-curve 분모 정책, 각 D의 값·단위, 원래 또는 공통 Vg 구간, 끝점 마스크
+  caution: 정규화 뒤 모양이 유사해도 절대 gm이 같다는 뜻은 아니다. 음수나 0을 분모로 사용하지 않는다.
+  visibility_condition: 유효 gm과 양의 분모가 있음; 극성 비교는 승인된 pair만
+  modes: *id001
+  settings_fields:
+  - normalization.denominator_policy
+  - normalization.domain
+  - normalization.denominators
+  - normalization.valid_mask
+- id: bias_dependence
+  title: 정류·전도도 · Vds 의존성
+  meaning: 선택 Vg에서 정류비와 직류 전도도가 drain 바이어스 크기에 따라 변하는지 확인합니다.
+  figure_ids:
+  - rr_bias
+  - g_bias
+  result_fields:
+    rr_at_bias: 선택 바이어스 RR
+    g_at_bias: 선택 바이어스 G
+  extraction_guidance: 실제 output에서 ±|Vds|를 매칭한 RR과 비영 Vds의 Id/Vds를 별도로 계산한다.
+  evaluation_guidance: 선택 Vg, 원래 output 범위·방향·block, |Vds| matching 및 floor
+  caution: 0 V에서는 Id/Vds와 RR을 계산하지 않는다. 저전압 RR→1은 관측한 경우만 서술한다.
+  visibility_condition: 실제 output과 유효 ±매칭 또는 비영 Vds G가 있음
+  modes: *id002
+  settings_fields:
+  - pairing.output_pair_id
+  - pairing.vds_alignment
+  - pairing.interpolation_policy
+  - conductance.zero_bias_policy
+- id: rr_transition
+  title: RR 전환점 · 감소가 완만해지는 지점
+  meaning: 이 연구에서 ‘RR 최저점’이라고 부르는 감소 후 평탄화 전환점을 별도로 평가합니다.
+  figure_ids:
+  - rr_transition
+  result_fields:
+    transition_gate: 전환 gate 전압
+  extraction_guidance: 사용자가 승인한 전환점 알고리즘을 사용한다. argmin(RR)은 별도 결과로 저장한다.
+  evaluation_guidance: 알고리즘·버전, 탐색 Vg 범위, 미분/피팅 창, 판정 기준, 민감도, 경계점 여부
+  caution: 알고리즘이 없으면 숫자를 만들지 않는다. 시각적 관찰은 구간을 동반한 정성 설명으로만 남긴다.
+  visibility_condition: 알고리즘·구간·검증이 명시됨; 미정의는 부록의 보류 1줄
+  modes: *id003
+  settings_fields:
+  - transition.algorithm
+  - transition.version
+  - transition.search_interval
+  - transition.criterion
+  - transition.sensitivity_validation
+  - transition.not_argmin

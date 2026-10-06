@@ -105,7 +105,7 @@ def process_one(source, source_hash, job_id, cfg, store, log):
         report=export_report(curves,summary,stage,cfg,additional)
         new_figures,_=research_panels(curves,summary,stage,additional,report)
         summary['figures'].extend(new_figures)
-        summary['report_format']='fet-research-note-2'
+        summary['report_format']='fet-template-report-1'
         phase = "publication"
         cache = cfg.paths["state"] / "ai-cache" / (job_id + ".json")
         if cache.exists():

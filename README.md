@@ -1,6 +1,8 @@
-# 연구 측정 자동화 1.6.0
+# 연구 자동화 1.7.0
 
-**다운로드:** [v1.6.0 GitHub Release](https://github.com/LWJ0604/hi/releases/tag/v1.6.0)에서 **research-automation-windows-v1.6.0.zip**을 받으세요. Python/Tcl/Tk와 의존성을 포함합니다. 짧은 경로(예: `C:\ResearchQA`)에 풀고 **Start-Local-QA.cmd**를 실행하세요. 기본 입력·분석·노트·DB는 패키지 안의 격리된 `qa-runtime`에 저장됩니다. 자동 감시는 직접 시작하기 전까지 실행되지 않습니다. [실행·업데이트 안내](UPDATE-1.6.0.md)
+**휴대용 실행:** [GitHub 릴리스](https://github.com/LWJ0604/hi/releases)의 **research-automation-windows-v1.7.0.zip**을 짧은 로컬 경로에 풀고 **Start-Local-QA.cmd**를 실행하세요. Python/Tcl/Tk가 포함됩니다. 기본 입력·분석·Vault·DB는 패키지 내부 `qa-runtime`의 격리된 폴더입니다. 자동 감시는 직접 시작하기 전에는 동작하지 않습니다. [실행·업데이트 안내](UPDATE-1.7.0.md)
+
+**1.7.0:** 실제 Template Creator Jinja·스키마를 새 노트와 비교 보고서에 연결했습니다. 값·상태·근거를 보존하고 과거 노트를 덮어쓰지 않습니다. [실행 안내](UPDATE-1.7.0.md), [연결 계약](docs/TEMPLATE-BRIDGE-LOCAL.md)
 
 **1.6.0:** Windows SQLite 백업과 로그 정리를 수정했습니다. 선택 결과의 조건·핵심 수치·다음 확인과 RR/gm 계산 근거를 먼저 보여줍니다. 연구노트 형식 2, Figure 2 패널, 모든 지표의 단위·상태·출처를 제공합니다. 반복 계산 근거는 손실 없이 공용 테이블에 저장하는 디스크 schema 3으로 정규화합니다. 기존 schema 1/2와 연구자 메모·이전 결과는 보존합니다. [노트·저장 형식](RESEARCH-NOTE-V2-LOCAL.md), [Windows 검증 범위](LOCAL-WINDOWS-REVIEW.md)
 
@@ -12,7 +14,7 @@
 
 `withlight`, `with light`, `with_light`, `light`는 입사광 **light**입니다. `dark`는 dark, 표기가 없으면 **dark 기본값(미확인)**, 출처가 다르면 **conflict**입니다. 기본값·파일명 추정은 사용자 확인과 구별합니다.
 
-원본 파일은 수정·이동하지 않고 SHA-256을 기록합니다. 새 노트와 산출물은 `Experiments/v1.6.0`, `Attachments/v1.6.0` 아래에 저장합니다. 기존 노트의 연구자 본문과 과거 결과를 덮어쓰지 않습니다. 외부 AI 호출은 `science.offline: true`로 차단하며 자동 요약은 규칙 기반입니다.
+원본 파일은 수정·이동하지 않고 SHA-256을 기록합니다. 새 노트와 산출물은 `Experiments/v1.7.0`, `Attachments/v1.7.0` 아래에 저장합니다. 기존 노트의 연구자 본문과 과거 결과를 덮어쓰지 않습니다. 외부 AI 호출은 `science.offline: true`로 차단하며 자동 요약은 규칙 기반입니다.
 
 ## Windows 사용
 
@@ -57,8 +59,8 @@ analysis/raw/<job>/                          원본 보관 사본
 analysis/runs/v1.6.0/<job>/                   새 분석 결과
 analysis/failures/v1.6.0/<job>_<time>.json     실패 단계와 미계산 상태
 analysis/comparisons/v1.6.0/<time>/           비교 후보/가능 여부
-vault/Experiments/v1.6.0/<소자>/<날짜>/<조건>/  새 연구노트
-vault/Attachments/v1.6.0/<소자>/<날짜>/<조건>/  그래프·CSV·JSON
+vault/Experiments/v1.7.0/<소자>/<날짜>/<조건>/  새 연구노트
+vault/Attachments/v1.7.0/<소자>/<날짜>/<조건>/  그래프·CSV·JSON
 vault/ResearchAutomation/metadata-overrides.json  확인값·이유·수정 이력
 vault/Weekly/v1.6.0/                         새 주간 보고
 state/jobs.sqlite3                          작업 기록

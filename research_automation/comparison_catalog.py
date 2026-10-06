@@ -64,7 +64,8 @@ def publish(cfg,jobs,selected_sources=None):
     assets=f'Attachments/v{__version__}/Comparisons/{stamp}';asset_dir=cfg.paths['vault']/assets;asset_dir.mkdir(parents=True,exist_ok=False)
     for path in directory.iterdir():shutil.copy2(path,asset_dir/path.name)
     note=cfg.paths['vault']/f'Experiments/v{__version__}/비교 검토_{stamp}.md'
-    text=photo_note(pairs,assets,directory,dict(exclusions),date_pending)
+    from .template_integration import render_comparison
+    text=render_comparison(entries,pairs,asset_dir,assets,note.relative_to(cfg.paths['vault']),dict(exclusions),date_pending)
     for path in directory.iterdir():
         if path.is_file() and not (asset_dir/path.name).exists():shutil.copy2(path,asset_dir/path.name)
     atomic_text(note,text)

@@ -75,7 +75,7 @@ def metadata_recompute(cfg,result_path,changed_fields):
             report=export_report(curves,summary,stage,cfg,additional)
             new_figures,_=research_panels(curves,summary,stage,additional,report)
             summary['figures']=list(dict.fromkeys([*summary.get('figures',[]),*new_figures]))
-            summary['report_format']='fet-research-note-2'
+            summary['report_format']='fet-template-report-1'
             write_json(stage/'result.json',summary);write_json(stage/'config_snapshot.json',cfg.data)
             final=cfg.paths['analysis']/'runs'/('v'+__version__)/job
             suffix=0

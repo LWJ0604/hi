@@ -10,6 +10,20 @@ STYLE='''body{font:15px/1.55 "Malgun Gothic","Noto Sans CJK JP",sans-serif;backg
 
 def render(text):
     def inline(text):
+        tokens=[]
+        def token(value):
+            tokens.append(value)
+            return '\x00'+str(len(tokens)-1)+'\x00'
+        def markdown(m):
+            path=m[3].strip('<>')
+            if re.match(r'(?i)(?:javascript|data|vbscript):',path):return html.escape(m[0])
+            url=html.escape(quote(path,safe='/#:'),quote=True)
+            label=html.escape(m[2])
+            return token(f'<img src="{url}" loading="lazy" alt="{label}">'
+                         if m[1] else f'<a href="{url}">{label}</a>')
+        text=re.sub(r'(!?)\[([^\[\]]+)\]\((<[^>]+>|[^)]+)\)',markdown,text)
+        text=re.sub(r'<a id="([a-z][a-z0-9-]*)"></a>',lambda m:token('<a id="'+m[1]+'"></a>'),text)
+        text=re.sub(r'`([^`]+)`',lambda m:token('<code>'+html.escape(m[1])+'</code>'),text)
         text=html.escape(text)
         def wiki(m):
             body=m[2];path,sep,label=body.partition('|');url=quote(path)
@@ -17,6 +31,7 @@ def render(text):
             return f'<a href="{url}">{label or path}</a>'
         text=re.sub(r'(!?)\[\[([^\]]+)\]\]',wiki,text)
         text=re.sub(r'\*\*(.+?)\*\*',r'<strong>\1</strong>',text)
+        for index,value in enumerate(tokens):text=text.replace('\x00'+str(index)+'\x00',value)
         return text.replace('\\|','|')
     lines=text.splitlines();output=[];i=0
     if lines and lines[0]=='---':
@@ -51,7 +66,7 @@ def render(text):
             j+=1
         return ''.join(out)
     output.append(blocks(lines[i:]))
-    return '<!doctype html><html lang="ko"><meta charset="utf-8"><title>연구 노트 읽기 미리보기</title><style>'+STYLE+'</style><main><aside>Markdown 읽기 미리보기 · 실제 Obsidian 화면 검증과 구분합니다.</aside>'+''.join(output)+'</main></html>'
+    return '<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>연구 노트 읽기 미리보기</title><style>'+STYLE+'code{font-size:12px;overflow-wrap:anywhere}main{overflow-wrap:anywhere}summary:focus-visible,a:focus-visible{outline:2px solid #2269b5}@media(max-width:600px){main{margin:0;padding:20px 16px;border-radius:0}h1{font-size:22px}table{display:block;overflow:auto}}</style><main><aside>Markdown 읽기 미리보기 · 실제 Obsidian 화면 검증과 구분합니다.</aside>'+''.join(output)+'</main></html>'
 
 
 if __name__=='__main__':
