@@ -57,3 +57,18 @@ class PackagedTemplateTests(unittest.TestCase):
         self.assertIn('id="'+anchor+'"',html)
         self.assertIn('href="#'+anchor+'"',html)
         self.assertIn('<details>',html)
+
+    def test_audit_guidance_uses_available_files_without_missing_shared_evidence(self):
+        bundle,ctx=self.canonical()
+        (self.root/'research_report.json').write_text('{}',encoding='utf-8')
+        ctx['report']['audit_links']=[{'label':'전체 계산 기록','path':'research_report.json'}]
+        text,_=bundle.render(ctx,self.root,self.proofs,'../자료 폴더')
+        self.assertIn('[전체 계산 기록](<../자료 폴더/research_report.json>)',text)
+        self.assertIn('위에 연결된 실제 근거 파일에서 확인하세요',text)
+        self.assertNotIn('metric_evidence.json에서 확인하세요',text)
+        self.assertFalse((self.root/'metric_evidence.json').exists())
+        spec=importlib.util.spec_from_file_location('note_html',Path(__file__).resolve().parents[1]/'scripts/preview_note_html.py')
+        preview=importlib.util.module_from_spec(spec);spec.loader.exec_module(preview)
+        html=preview.render(text)
+        audit=html[html.index('<details><summary>전체 계산·QC·공유 근거 파일'):].split('</details>',1)[0]
+        self.assertIn('위에 연결된 실제 근거 파일에서 확인하세요',audit)

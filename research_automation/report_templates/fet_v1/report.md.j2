@@ -185,9 +185,9 @@ RR의 분자·분모를 바꾸지 않습니다. Vds=0에서 Id/Vds를 계산하�
 > [!info]- 전체 계산·QC·공유 근거 파일
 {% for link in report.audit_links -%}
 > - [{{ link.label }}](<{{ link.path }}>)
-{% endfor %}
+{% endfor -%}
 >
-> 기존 계산과 QC, 원본점·단위 변환·공유 provenance를 그대로 보존한 파일입니다. 정규화 JSON의 참조는 metric_evidence.json에서 확인하세요. 표시에 사용하지 않은 지표도 전체 CSV와 기존 기록에서 열람할 수 있습니다.
+> 기존 계산과 QC, 원본점·단위 변환·공유 provenance를 그대로 보존한 파일입니다. 상세 참조는 위에 연결된 실제 근거 파일에서 확인하세요. 표시에 사용하지 않은 지표도 전체 CSV와 기존 기록에서 열람할 수 있습니다.
 {% endif %}
 {% if report.get('metadata_rows') %}
 > [!info]- 측정 조건 — 값·출처·확인 상태
@@ -195,7 +195,7 @@ RR의 분자·분모를 바꾸지 않습니다. Vds=0에서 Id/Vds를 계산하�
 > |:--|:--|:--|:--|:--|
 {% for row in report.metadata_rows -%}
 > | {{ row.label }} | {{ row.value }} {{ row.unit }} | {{ row.source }} | {{ row.status }} | {{ row.other_evidence }} |
-{% endfor %}
+{% endfor -%}
 >
 > 값·상태·확인 이력은 원래 기록에서 읽었습니다. 사용자 확인은 GUI 메타데이터 검토의 별도 override 이력에 저장하세요.
 {% endif %}
