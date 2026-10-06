@@ -27,7 +27,7 @@ class SettingsTests(Base):
         self.assertEqual(updated.data["qc"]["gate_leakage_a"], 7e-8)
         self.assertEqual(updated.data["organization"], self.data["organization"])
         self.assertEqual(next(self.root.glob("config.before-gui-*.json")).read_bytes(), original)
-        self.assertEqual(updated.paths["inbox"], self.root / "new input")
+        self.assertEqual(updated.paths["inbox"], (self.root / "new input").resolve())
 
     def test_unchanged_save_does_not_reprocess_or_rewrite(self):
         original = self.path.read_bytes()
@@ -67,7 +67,7 @@ class SettingsTests(Base):
         note.write_text("test", encoding="utf-8")
         uri = note_uri(note)
         from urllib.parse import parse_qs, urlparse
-        self.assertEqual(parse_qs(urlparse(uri).query)["path"], [str(note)])
+        self.assertEqual(parse_qs(urlparse(uri).query)["path"], [str(note.resolve())])
         with self.assertRaises(ValueError):
             note_uri(self.root / "missing.md")
 
