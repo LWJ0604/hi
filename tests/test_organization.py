@@ -35,24 +35,24 @@ class ClassificationTests(Base):
         self.assertEqual(value["vault_subfolder"], "drain-fold/2026-09-23/Id-Vg__dark__Vd=2V")
         self.assertEqual(value["warnings"], [])
 
-    def test_unmarked_filename_remains_unknown_with_no_default_evidence(self):
+    def test_unmarked_excel_filename_uses_dark_naming_rule(self):
         value = self.context("drain-fold/2026-09-23/Id-Vg_Vd=2V.xls")
-        self.assertEqual(value["illumination"], "unknown")
-        self.assertEqual(value["illumination_source"], "unavailable/unmarked_filename")
-        self.assertIn("Id-Vg__unknown__Vd=2V", value["vault_subfolder"])
-        self.assertEqual(value["evidence"]["illumination"], [])
-
-    def test_filename_lighting_conflicts_are_retained(self):
-        value = self.context("drain-fold/2026-09-23/dark/Id-Vg_Vd=2V_LIGHT.xls")
-        self.assertEqual(value["illumination"], "conflict")
+        self.assertEqual(value["illumination"], "dark")
         self.assertEqual(value["illumination_source"], "filename")
-        self.assertTrue(any("illumination 후보 불일치" in warning for warning in value["warnings"]))
+        self.assertIn("Id-Vg__dark__Vd=2V", value["vault_subfolder"])
+        self.assertEqual(value['naming_fields']['illumination']['verification'],'naming_rule')
 
-    def test_unmarked_filename_unknown_even_in_light_folder(self):
+    def test_excel_filename_light_ignores_dark_folder(self):
+        value = self.context("drain-fold/2026-09-23/dark/Id-Vg_Vd=2V_LIGHT.xls")
+        self.assertEqual(value["illumination"], "light")
+        self.assertEqual(value["illumination_source"], "filename")
+        self.assertFalse(any("illumination 후보 불일치" in warning for warning in value["warnings"]))
+
+    def test_unmarked_excel_filename_dark_even_in_light_folder(self):
         value = self.context("drain-fold/2026-09-23/light/Id-Vg_Vd=2V.xls")
-        self.assertEqual(value["illumination"], "unknown")
-        self.assertEqual(value["illumination_source"], "unavailable/unmarked_filename")
-        self.assertEqual(value["condition_label"], "Id-Vg__unknown__Vd=2V")
+        self.assertEqual(value["illumination"], "dark")
+        self.assertEqual(value["illumination_source"], "filename")
+        self.assertEqual(value["condition_label"], "Id-Vg__dark__Vd=2V")
         self.assertTrue(value["evidence"]["illumination"])
 
     def test_explicit_filename_light_and_dark_are_preserved(self):
@@ -126,7 +126,7 @@ class ClassificationTests(Base):
 
     def test_old_config_default_backfill(self):
         self.data.pop("organization")
-        self.assertEqual(self.configure().data["organization"], {"path_rules": []})
+        self.assertEqual(self.configure().data["organization"], {"path_rules": [],'naming_rules':{'date_from_folder':True,'excel_light_from_filename':True}})
 
     def test_path_component_is_windows_and_wikilink_safe(self):
         self.assertEqual(component("CON"), "_CON")
@@ -165,9 +165,9 @@ class OrganizationPipelineTests(Base):
         for entry in outcome["files"]:
             note = Path(entry["note"])
             text = note.read_text(encoding="utf-8")
-            self.assertIn('measurement_date: null', text)
+            self.assertRegex(text,r'measurement_date: "2026-09-(23|24)"')
             self.assertIn('2026-09-', text)
-            self.assertIn('사용자 확인 전', text)
+            self.assertIn('이름 규칙 자동 입력 · 사람의 실측 확인 아님', text)
             self.assertIn("device_name:", text)
             assets=self.cfg.paths['vault']/json.loads((self.cfg.paths['analysis']/'runs'/('v'+__version__)/entry['job_id']/'result.json').read_text(encoding='utf-8'))['vault_assets_relative_path']
             manifest=json.loads((assets/'figure2_manifest.json').read_text(encoding='utf-8'))
@@ -178,6 +178,10 @@ class OrganizationPipelineTests(Base):
             for link in re.findall(r'\[\[([^\]|]+)(?:\|[^\]]*)?\]\]', text):
                 self.assertTrue((self.cfg.paths["vault"] / link).exists(), link)
             result = json.loads((self.cfg.paths["analysis"] / "runs" / ("v" + __version__) / entry["job_id"] / "result.json").read_text(encoding="utf-8"))
+            date=result['research_context']['fields']['measurement_date']
+            self.assertEqual(date['verification'],'naming_rule')
+            self.assertEqual(date['status'],'inferred')
+            self.assertEqual(date['history'],[])
             self.assertEqual(result["vault_note_relative_path"], note.relative_to(self.cfg.paths["vault"]).as_posix())
             table = pd.read_csv(self.cfg.paths["analysis"] / "runs" / ("v" + __version__) / entry["job_id"] / "normalized.csv")
             self.assertEqual(table["device_name"].unique().tolist(), [result["research_context"]["device_name"]])

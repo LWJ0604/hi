@@ -52,13 +52,14 @@ class ParsingMetadataTests(unittest.TestCase):
         self.assertEqual(len(branches),2)
         self.assertEqual(sum(len(b) for _,b in branches),160)
         self.assertIn(83,sheets[0]['parse_status']['missing_source_rows'])
-    def test_withlight_and_unmarked_conflict(self):
+    def test_light_parser_and_excel_unmarked_dark_rule(self):
         for name in ['withlight','with light','with_light','light']:
             self.assertEqual(lighting_in(name),['light'])
         self.assertEqual(lighting_in('dark_withlight'),['dark','light'])
         c=self.context('device/2026-09-23/Id-Vg.xls')
-        self.assertEqual(c['illumination'],'unknown')
-        self.assertEqual(c['fields']['illumination']['status'],'missing')
+        self.assertEqual(c['illumination'],'dark')
+        self.assertEqual(c['fields']['illumination']['status'],'inferred')
+        self.assertEqual(c['fields']['illumination']['verification'],'naming_rule')
         clock=self.context('device/2026-09-23/Id-Vg.xls',{'hold_time_s':3.,'sweep_delay_s':.5})
         self.assertEqual(clock['fields']['hold_s']['source'],'Settings/Hold Time')
         self.assertEqual(clock['fields']['sweep_delay_s']['source'],'Settings/Sweep Delay')
