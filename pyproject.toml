@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "research-automation"
-version = "1.9.0"
+version = "1.9.1"
 description = "Local Keithley measurement QC, fitting and Obsidian research pipeline"
 requires-python = ">=3.11"
 dependencies = ["numpy==2.3.5", "pandas==2.2.3", "scipy==1.17.0", "matplotlib==3.10.8", "openpyxl==3.1.5", "xlrd==2.0.1", "httpx==0.28.1", "fastapi==0.141.1", "uvicorn==0.52.1", "tzdata==2026.3", "Jinja2==3.1.6", "jsonschema==4.26.0", "PyYAML==6.0.2", "Markdown==3.8.2"]

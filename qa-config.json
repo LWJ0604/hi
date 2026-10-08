@@ -1,11 +1,11 @@
 {
   "paths": {
-    "inbox": "data_inbox",
-    "analysis": "analysis",
-    "vault": "vault",
-    "state": "state",
-    "logs": "logs",
-    "backups": "backups"
+    "inbox": "qa-runtime/data_inbox",
+    "analysis": "qa-runtime/analysis",
+    "vault": "qa-runtime/vault",
+    "state": "qa-runtime/state",
+    "logs": "qa-runtime/logs",
+    "backups": "qa-runtime/backups"
   },
   "timezone": "Asia/Seoul",
   "ingest": {
@@ -20,6 +20,7 @@
     "max_attempts": 3,
     "retry_seconds": 60,
     "extensions": [
+      ".csv",
       ".xls",
       ".xlsx"
     ],
@@ -78,6 +79,27 @@
       "excel_light_from_filename": true
     }
   },
+  "measurement_profile": {
+    "voltage_unit": null,
+    "current_unit": null,
+    "confirmed": false,
+    "source": null
+  },
+  "benchmark": {
+    "enabled": true,
+    "metadata_root": null,
+    "electrode_pair": null,
+    "fit_range_v": [
+      0.6,
+      2.0
+    ],
+    "gm_windows_v": [
+      2.0,
+      4.0,
+      8.0
+    ],
+    "min_fit_points": 5
+  },
   "science": {
     "rr_voltages_v": [
       0.5,
@@ -116,26 +138,5 @@
     "knee_axis": "linear",
     "knee_min_side_points": 4,
     "offline": true
-  },
-  "benchmark": {
-    "enabled": true,
-    "metadata_root": null,
-    "electrode_pair": null,
-    "fit_range_v": [
-      0.6,
-      2.0
-    ],
-    "gm_windows_v": [
-      2.0,
-      4.0,
-      8.0
-    ],
-    "min_fit_points": 5
-  },
-  "measurement_profile": {
-    "voltage_unit": null,
-    "current_unit": null,
-    "confirmed": false,
-    "source": null
   }
 }

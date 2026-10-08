@@ -73,7 +73,11 @@
     "include_filename": false
   },
   "organization": {
-    "path_rules": []
+    "path_rules": [],
+    "naming_rules": {
+      "date_from_folder": true,
+      "excel_light_from_filename": true
+    }
   },
   "science": {
     "rr_voltages_v": [

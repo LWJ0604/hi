@@ -1,14 +1,14 @@
-# 연구 자동화 1.9.0
+# 연구 자동화 1.9.1 (로컬 검증본)
 
 Keithley 측정 파일을 읽어 반복 그래프, 기본 파라미터, 계산 근거와 Obsidian 연구노트를 만드는 Windows용 로컬 앱입니다. **측정 조건 확인 → 원시 데이터와 결과 읽기 → 비교 가능한 조건 선택** 순서로 사용합니다. Python 3.12, Tk GUI, pandas·NumPy·SciPy·Matplotlib을 사용합니다.
 
 [기본 보고서와 상세 메타데이터 양식](docs/basic-report.md) · [1.9 변경점](UPDATE-1.9.0.md) · [branch별 관측 검토](UPDATE-1.8.0.md) · [CI 결과](https://github.com/LWJ0604/hi/actions)
 
-이 README는 `main`의 **1.9.0 소스** 기준입니다. [Releases](https://github.com/LWJ0604/hi/releases)의 실제 첨부 버전을 확인하세요. GitHub의 **Code → Download ZIP**은 소스이며 Python 런타임이 포함된 휴대용 패키지와 다릅니다.
+이 작업 폴더는 **1.9.1 로컬 검증 소스** 기준입니다. 원격 저장소와 릴리스는 이 작업에서 변경하지 않았습니다. [Releases](https://github.com/LWJ0604/hi/releases)의 실제 첨부 버전을 확인하세요. GitHub의 **Code → Download ZIP**은 소스이며 Python 런타임이 포함된 휴대용 패키지와 다릅니다.
 
 ## Windows에서 처음 실행하기
 
-현재 1.9.0은 소스로 설치할 수 있습니다.
+이 로컬 검증본은 제공된 새 폴더의 런처로 실행하거나 소스로 설치할 수 있습니다.
 
 1. **Python 3.12 64비트와 Tcl/Tk**를 설치합니다. 설치할 때 Tcl/Tk 옵션을 포함하세요.
 2. 이 저장소의 소스 ZIP을 내려받아 Vault와 측정 폴더 밖의 새 프로그램 폴더에 풉니다.
@@ -75,9 +75,9 @@ run_conditions:
 
 **상속과 탐색 경계:** 입력 폴더부터 원본에 가까운 `device.md`까지 읽으며 가까운 값이 우선합니다. 입력 폴더가 `원본` 또는 `raw`이고 바로 상위에 `device.md`가 있으면 그 상위까지 읽습니다. 더 넓은 상속이 필요하면 입력 폴더를 공통 상위로 선택하거나 `benchmark.metadata_root`를 지정합니다. 명시한 root는 입력 폴더를 포함해야 하며 파일 선택과 연결 대상은 여전히 GUI의 입력 폴더 안에 있어야 합니다. 파일 연결은 해당 `device.md` 기준의 상대 경로이고 `..`, 절대 경로와 범위 밖 연결은 허용하지 않습니다.
 
-하위 파일에서 값·단위·출처·확인 상태 중 일부를 바꾸면 그 **필드 전체를 교체**합니다. 새 값에 상위 단위나 확인 이력을 붙이지 않습니다. 파일 연결을 다시 선언하면 그 파일의 날짜·광 조건도 다시 지정해야 합니다. 수정하지 않은 다른 필드는 상속됩니다. 소자 이름이 달라지면 이전 소자의 geometry를 계속 사용하지 않습니다. 잘못된 타입·YAML은 경고와 함께 격리하고 의존하는 계산을 보류합니다.
+하위 파일에서 값·단위·출처·확인 상태 중 일부를 바꾸면 그 **필드 전체를 교체**합니다. 새 값에 상위 단위나 확인 이력을 붙이지 않습니다. 파일 연결을 다시 선언하면 이전 파일의 명시 날짜·광 조건을 가져오지 않습니다. 유효한 새 명시값이 없으면 날짜 폴더·Excel 파일명 규칙을 적용합니다. 수정하지 않은 다른 필드는 상속됩니다. 소자 이름이 달라지면 이전 소자의 geometry를 계속 사용하지 않습니다. 잘못된 타입·YAML은 경고와 함께 격리하고 의존하는 계산을 보류합니다.
 
-**현재 연결 제한:** 하나의 병합된 `run_conditions`는 **IdVd 한 파일 + IdVg 한 파일**만 명시할 수 있습니다. 날짜/광 조건/전극쌍별로 다른 연결이 필요하면 별도 조건 폴더의 `device.md`에 정확히 지정하거나 파일을 직접 선택하세요. 파일명 유사성이나 같은 날짜만으로 짝을 찾지 않으며, 나머지 파일·조건을 자동으로 연결하거나 비교하지 않습니다. Scan/감시는 다른 입력 파일도 개별 처리하지만 모든 조건 조합을 자동 해석하는 기능은 아닙니다.
+**현재 연결 제한:** 하나의 병합된 `run_conditions`는 **IdVd 한 파일 + IdVg 한 파일**만 명시할 수 있습니다. 모든 Excel 파일의 날짜·광 조건 자동 입력은 연결 여부와 무관합니다. 날짜/광 조건/전극쌍별로 다른 연결이 필요하면 별도 조건 폴더의 `device.md`에 정확히 지정하거나 파일을 직접 선택하세요. 파일명 유사성이나 같은 날짜만으로 짝을 찾지 않으며, 나머지 파일·조건을 자동으로 연결하거나 비교하지 않습니다. Scan/감시는 다른 입력 파일도 개별 처리하지만 모든 조건 조합을 자동 해석하는 기능은 아닙니다.
 
 ## 단위·실제 날짜·광 조건 확인
 
@@ -88,9 +88,9 @@ run_conditions:
 - 다른 단위라면 V/A 확인을 선택하지 말고 파일의 명시 단위 또는 `device.md`의 확인된 `run_conditions.units`를 사용하세요. 이 프로필은 전압 V/mV/uV, 전류 A/mA/uA/nA/pA를 지원합니다. 충돌은 따로 표시합니다.
 - 기본 보고서의 평가 전압·전류 단위가 미확인이면 RR·gm·모델 계수 등 의존 계산을 `null`과 사유로 보류합니다. 원시 그림과 독립적으로 가능한 관측은 유지합니다. 단위 확인은 검출한계·선형영역·측정일 확인을 대신하지 않습니다.
 
-**실제 측정일은 사용자가 확인한 정보가 기준**이며 `measurement_date`는 명시한 해당 파일에만 적용합니다. Keithley의 날짜·시각은 참고 정보로 분리합니다. 실제 시간이 없으면 만들어 넣지 않으며 장비 delay와 사용자 기록의 불일치는 그대로 남깁니다.
+**측정일은 원본 분류 폴더의 유효한 전체 날짜에서 자동 입력**합니다. 명시한 파일의 유효한 `device.md` 값과 별도 사용자 override는 자동 규칙보다 우선합니다. 빈 값·unknown·unconfirmed 표기는 규칙을 막지 않습니다. 자동 입력은 사람의 실측 확인과 구분되며 Keithley의 날짜·시각은 참고 정보로 분리합니다. 실제 시간이 없으면 만들어 넣지 않으며 장비 delay와 사용자 기록의 불일치는 그대로 남깁니다.
 
-`withlight`, `with light`, `with_light`, `light`는 light, `dark`는 dark로 파싱합니다. 무표기의 dark 기본값·파일명 추정은 **미확인**이며 사람이 확인한 광 조건과 구별합니다. 광파워가 없으면 responsivity를 확정하지 않습니다.
+Excel 파일명에 대소문자와 관계없이 `light`가 포함되면 light, 없으면 dark로 자동 입력합니다. 폴더 이름의 light/dark는 사용하지 않습니다. 자동 입력은 **이름 규칙**이며 사람이 확인한 광 조건과 구별합니다. 광파워가 없으면 responsivity를 확정하지 않습니다.
 
 ## 계산의 의미와 제한
 
@@ -112,16 +112,16 @@ run_conditions:
 `analysis`, `vault` 등은 설정한 경로의 이름입니다. CLI `report`와 GUI 기본 보고서는 새 폴더를 만들며, Scan의 기본 보고서는 해당 작업 폴더 안에 생성합니다.
 
 ```text
-analysis/benchmarks/v1.9.0/<새 폴더>/         선택 파일의 기본 보고서
-analysis/runs/v1.9.0/<job>/benchmark/         Scan/감시의 기본 보고서
+analysis/benchmarks/v1.9.1/<새 폴더>/         선택 파일의 기본 보고서
+analysis/runs/v1.9.1/<job>/benchmark/         Scan/감시의 기본 보고서
   report.html, report.md                     읽는 보고서
   images/                                   PNG/SVG 그래프
   csv/                                      RR·극성 전류·gm·피팅·잔차·원본 셀
   inputs/, metadata/                        선택 원본과 사용한 device.md 사본
   diagnostics/                              읽기·조건·최적화·보류·실패 진단
-analysis/observations/v1.9.0/                observe의 branch별 상세 검토
-vault/Experiments/v1.9.0/                    새 버전 연구노트
-vault/Attachments/v1.9.0/                    새 버전 노트의 그림·수치 자료
+analysis/observations/v1.9.1/                observe의 branch별 상세 검토
+vault/Experiments/v1.9.1/                    새 버전 연구노트
+vault/Attachments/v1.9.1/                    새 버전 노트의 그림·수치 자료
 vault/ResearchAutomation/metadata-overrides.json  확인값·이유·변경 이력
 state/jobs.sqlite3                          작업 기록
 logs/pipeline.log                           실행/오류 로그
@@ -156,3 +156,7 @@ logs/pipeline.log                           실행/오류 로그
 ```
 
 2026-10-08 사용자 업로드 커밋 [`889d4f9`](https://github.com/LWJ0604/hi/commit/889d4f97c057a49e7d5221743a4453051a47a3be)의 [Windows·Ubuntu CI](https://github.com/LWJ0604/hi/actions/runs/37709011754)는 **각각 266개 테스트를 통과**했습니다. 로컬 Windows에서도 266개 전체 테스트, 공개용 패키지의 45개 회귀와 런처를 확인했습니다. 실제 Tk의 파일 선택·중복 실행 방지·누락 파일 재시도·결과 열기·백업과 Chrome 보고서 화면을 검증했습니다. **다른 PC 설치, 실제 Obsidian 화면과 작업 스케줄러는 미검증**입니다. 최신 커밋의 결과는 [Actions](https://github.com/LWJ0604/hi/actions)에서 확인하세요.
+
+## 날짜 폴더·Excel 광 조건 규칙
+
+[정확한 이름 규칙과 설정](docs/naming-rules.md) · [1.9.1 로컬 변경점](UPDATE-1.9.1.md). 원본 폴더의 가장 가까운 유효한 날짜를 사용하고 `원본/raw/original` 및 분석 결과 폴더 아래의 처리 날짜는 사용하지 않습니다. 명시 정보와 이름 규칙이 다르면 명시값을 유지하고 보고서에 확인 안내를 남깁니다. 실제 시각·단위·온도·delay·배선·유전율은 이 규칙으로 확인하지 않습니다.
