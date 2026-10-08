@@ -165,7 +165,22 @@ def identify(relative, metadata, instrument, summary, cfg):
     timestamp = instrument.get("measurement_timestamp_raw")
     # Instrument clock is an equipment record, not an actual measurement date.
 
-    result = {"source_folders": folders, "source_relative_path": relative, "device_hierarchy": [item["value"] for item in device_candidates], "warnings": warnings}
+    from .naming_metadata import automatic_conditions,naming_rules
+    naming=automatic_conditions(cfg.paths['inbox']/relative,cfg)
+    policy=naming_rules(cfg)
+    if policy['date_from_folder']:
+        candidates['measurement_date']=[{**item,'priority':2} for item in naming.get('measurement_date',{}).get('candidates',[])]
+    else:
+        candidates['measurement_date']=[item for item in candidates['measurement_date'] if item['source'].startswith('path_rules')]
+    if path.suffix.casefold() in ('.xls','.xlsx'):
+        lighting=naming.get('illumination')
+        candidates['illumination']=[{'value':lighting['value'],'source':'filename','priority':3}] if lighting else []
+    # Equal-priority date candidates are ordered nearest first for the selected
+    # value; the raw naming record retains the original ancestor evidence.
+    if policy['date_from_folder']:
+        candidates['measurement_date'].reverse()
+
+    result = {"source_folders": folders, "source_relative_path": relative, "device_hierarchy": [item["value"] for item in device_candidates], "warnings": warnings,'naming_fields':naming}
     for key, options in candidates.items():
         ordered = sorted(options, key=lambda item: item["priority"])
         picked = ordered[0] if ordered else {"value": None, "source": "unavailable"}

@@ -6,6 +6,7 @@ The production writer uses the supplied bundle over a small read-only view.
 import copy
 import hashlib
 import json
+from .naming_metadata import condition_source
 import math
 from pathlib import Path
 
@@ -285,10 +286,10 @@ blocks. All other points remain reachable through the original CSV/evidence.
     result['report'].update(
         title=summary.get('source_filename'), profile='id_vg' if group['axis'] == 'vg' else 'id_vd',
         purpose='원래 측정 곡선과 조건을 확인하고 재현 가능한 후보 수치의 근거를 검토합니다.',
-        measurement_date_display=str(date.get('value')) if date_confirmed else (
+        measurement_date_display=str(date.get('value'))+' · 이름 규칙 자동 입력 · 사람의 실측 확인 아님' if date.get('verification')=='naming_rule' else str(date.get('value')) if date_confirmed else (
             str(date['value']) + ' · ' + {'inferred':'추정', 'conflict':'충돌', 'missing':'확인 전'}.get(date.get('status'), '확인 전') + ' · 사용자 확인 전'
             if date.get('value') else '실제 측정일 확인 전'),
-        measurement_date_source_display=str(date.get('source') or '파일별 사용자 확인 필요'),
+        measurement_date_source_display=condition_source(date),
         conditions_summary=conditions(summary, group), generated_at=summary.get('created_at'),
         analysis_version=summary.get('version'), internal_id=summary.get('job_id'))
     result['device']['name'] = context.get('device_name')

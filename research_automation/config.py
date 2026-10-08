@@ -16,7 +16,7 @@ DEFAULT = {
     "analysis": {"x": "vd", "y": "id", "group_by": ["vg"], "min_points": 6, "max_groups": 200, "models": ["linear", "sinh"], "rr_voltage": 1.0, "current_floor_a": 1e-14, "auto_detect_axis": True, "transfer_models": ["linear"]},
     "qc": {"gate_leakage_a": 1e-7, "zero_offset_a": 1e-7, "zero_voltage_tolerance_v": 1e-9, "current_jump_a": 5e-8, "hysteresis_mean_difference_a": 1e-7, "max_invalid_fraction": 0.05},
     "ai": {"enabled": False, "model": "gpt-4.1-mini", "timeout_seconds": 45, "max_attempts": 3, "max_output_tokens": 1800, "max_groups": 20, "include_filename": False},
-    "organization": {"path_rules": []},
+    "organization": {"path_rules": [], "naming_rules": {"date_from_folder": True, "excel_light_from_filename": True}},
     "measurement_profile": {"voltage_unit": None, "current_unit": None, "confirmed": False, "source": None},
     "benchmark": {"enabled": True, "metadata_root": None, "electrode_pair": None,
         "fit_range_v": [0.6, 2.0], "gm_windows_v": [2.0, 4.0, 8.0], "min_fit_points": 5},
@@ -46,6 +46,7 @@ class Config:
             self.data.setdefault(section, copy.deepcopy(DEFAULT[section]))
             for key,value in DEFAULT[section].items():self.data[section].setdefault(key,copy.deepcopy(value))
         self.data.setdefault("organization", copy.deepcopy(DEFAULT["organization"]))
+        self.data['organization'].setdefault('naming_rules',copy.deepcopy(DEFAULT['organization']['naming_rules']))
         self.data.setdefault("science", copy.deepcopy(DEFAULT["science"]))
         for key, value in DEFAULT["science"].items():
             self.data["science"].setdefault(key, copy.deepcopy(value))
@@ -92,6 +93,9 @@ class Config:
         if not isinstance(bench['gm_windows_v'],list) or not bench['gm_windows_v'] or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or v<=0 for v in bench['gm_windows_v']):raise ValueError('benchmark.gm_windows_v: positive finite widths required')
         if not isinstance(bench['min_fit_points'],int) or isinstance(bench['min_fit_points'],bool) or bench['min_fit_points']<5:raise ValueError('benchmark.min_fit_points: integer >=5 required')
         rules = d["organization"]["path_rules"]
+        naming=d['organization']['naming_rules']
+        if not isinstance(naming,dict) or set(naming)!=set(DEFAULT['organization']['naming_rules']) or any(not isinstance(v,bool) for v in naming.values()):
+            raise ValueError('organization.naming_rules는 date_from_folder/excel_light_from_filename의 true/false 값이어야 합니다.')
         if not isinstance(rules, list):
             raise ValueError("organization.path_rules must be a list")
         supported = {"measurement_date", "device_name", "device_type", "fold", "condition", "illumination"}

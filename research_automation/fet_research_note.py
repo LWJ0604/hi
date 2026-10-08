@@ -27,7 +27,7 @@ def render_research_note(summary,assets,directory):
     base=os.path.relpath(Path(assets),note_parent).replace('\\','/')
     def link(name,label=None):return f'[{label or name}](<{base}/{name}>)'
     def image(name,label):return f'![{label}](<{base}/{name}>)'
-    def state(item):return STATUS.get(item.get('metric_status',item.get('status')),'미확인')
+    def state(item):return '이름 규칙 자동 입력 · 사람의 실측 확인 아님' if item.get('verification')=='naming_rule' else STATUS.get(item.get('metric_status',item.get('status')),'미확인')
     def value(item):
         v=item.get('value');candidate=item.get('candidate_value_assuming_si')
         return number(v,item.get('unit','1')) if v is not None else number(candidate,item.get('unit','1'))+' · V/A 가정 참고값' if candidate is not None else '추출하지 않음'
@@ -80,6 +80,7 @@ def render_research_note(summary,assets,directory):
         item=context.get('fields',{}).get(key,{})
         evidence='; '.join(f'{c.get("value")} ({c.get("source")})' for c in item.get('candidates',[]))
         lines.append(f'| {label} | {fmt(item)} | {state(item)} | {cell(evidence or item.get("source","근거 없음"))} |')
+    for notice in context.get('condition_notices',[]):lines+=['','**조건 확인:** '+cell(notice)]
     instrument=summary.get('instrument_settings',{})
     lines += [f'| Keithley 시각 (참고) | {cell(instrument.get("measurement_timestamp_raw","미확인"))} | 참고 | 실제 측정일을 대체하지 않음; timezone 미확인 |',
               f'| 원래 sweep / 고정 bias / 방향 | {cell(human_group)} | 원본 기록 | {cell((g or {}).get("original_sweep",{}))} |',

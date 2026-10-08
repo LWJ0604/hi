@@ -1,5 +1,6 @@
 """Portable, append-only metadata confirmations; never edit measurement files."""
 from datetime import date
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -67,6 +68,12 @@ def fingerprint(cfg, relative, source_hash):
 def build_context(relative, metadata, instrument, summary, cfg, source_hash):
     context = identify(relative,metadata,instrument,summary,cfg)
     override = load_override(cfg,relative,source_hash)
+    from .device_metadata import context_for,resolved_run_conditions
+    source=cfg.paths['inbox']/relative
+    device_context=context_for(source,cfg)
+    _,resolved,notices=resolved_run_conditions(source,device_context,cfg,override.get('fields',{}))
+    context['condition_notices']=notices
+    context['resolved_conditions']=resolved
     fields = {}
     for key,unit in UNITS.items():
         candidates = list(context.get('evidence',{}).get(key,[]))
@@ -88,15 +95,24 @@ def build_context(relative, metadata, instrument, summary, cfg, source_hash):
         item = {'value':None if selected in ('unknown','conflict') else selected, 'unit':unit,
             'source':selected_source, 'status':'inferred' if selected is not None and selected not in ('unknown','conflict') else 'missing',
             'candidates':candidates,'history':[]}
-        if key in override['fields']:
+        declaration=resolved.get(key) if key in ('measurement_date','illumination') else None
+        explicit=False
+        if isinstance(declaration,dict) and declaration.get('value') is not None:
+            item.update(copy.deepcopy(declaration))
+            item['source']=declaration.get('source') or 'device.md / 출처 미기록'
+            item['status']=declaration.get('status') or ('confirmed' if declaration.get('verification')=='user_confirmed' else 'inferred')
+            explicit=declaration.get('verification')!='naming_rule'
+            auto=declaration.get('naming_rule_candidate')
+            item['candidates']=([{'value':auto['value'],'source':auto['source']}] if auto else candidates)+[{'value':item['value'],'source':item['source']}]
+        if key in override['fields'] and key not in ('measurement_date','illumination'):
             item.update(override['fields'][key])
             item['candidates'] = candidates + [{'value':item['value'],'source':'user_override'}]
         # User choosing a timing value does not silently resolve an instrument disagreement.
         distinct = {json.dumps(c['value'],sort_keys=True) for c in item['candidates']}
         if key in ('illumination','sweep_delay_s','hold_s') and len(distinct)>1:
             item['candidate_disagreement']=True
-            if key=='illumination' and item['source']=='user_override' and item['status']=='confirmed':
-                item['resolution_reason']=item['history'][-1]['reason']
+            if key=='illumination' and explicit:
+                item['resolution_reason']=item['history'][-1]['reason'] if item.get('history') else '명시한 측정 조건을 유지; 이름 규칙과 차이는 별도 안내'
             else:item['status']='conflict'
         if key == 'units_confirmed' and item['value'] is False:item['status']='missing'
         fields[key]=item

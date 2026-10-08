@@ -35,8 +35,13 @@ def readable(item):
     if result is None:return '미확인'
     state={'user_confirmed':'사용자 확인','assumed':'가정','reported':'보고값',
         'user_reported':'사용자 보고','filename_reported':'파일명 기록',
-        'unconfirmed':'미확인','reported_unconfirmed':'적용 미확인'}.get(item.get('verification'),'출처 확인 필요')
-    return str(result)+(' '+str(item['unit']) if item.get('unit') else '')+' · '+state
+        'unconfirmed':'미확인','reported_unconfirmed':'적용 미확인',
+        'naming_rule':'이름 규칙 자동 입력 · 사람의 실측 확인 아님'}.get(item.get('verification'),'출처 확인 필요')
+    evidence=item.get('evidence',{})
+    source=('날짜 폴더 '+str(evidence.get('folder_name','')) if item.get('source')=='folder_name' else
+            'Excel 파일명 '+str(evidence.get('filename','')) if item.get('verification')=='naming_rule' else
+            str(item.get('source') or '출처 미기록'))
+    return html.escape(str(result)+(' '+str(item['unit']) if item.get('unit') else '')+' · '+state+' · '+source)
 
 
 def table(headers,rows):
@@ -205,6 +210,8 @@ def source_section(loaded,output,transfer,images,prefix):
         ['선택 전극쌍',geom['electrode_pair'] or '미선택'],['확인된 L / W (µm)',num(geom['L_um'])+' / '+num(geom['W_um'])],
         ['산화막 두께 (nm)',num(geom['tox_nm'])],['유전율 εr',num(geom['epsr'])+(' · 가정' if geom['epsr_verification']=='assumed' else ' · 입력값')],
         ['온도 (°C)',num(geom['temperature_C'])],['전극',str(data.get('structure',{}).get('electrodes',{}).get('metal','미확인'))]])+'\n']
+    for notice in loaded.get('condition_notices',[]):
+        lines+=['**조건 확인:** '+html.escape(notice)+'\n']
     condition_rows=[]
     for b in dict.fromkeys(t['block'] for t in loaded['traces']):
         ts=[t for t in loaded['traces'] if t['block']==b];first,last=ts[0],ts[-1]
@@ -314,6 +321,7 @@ def export(sources,cfg,directory,*,pair_reason='단독 선택',stop_event=None,o
             frame.to_csv(out/'csv'/(prefix+'-'+name+'.csv'),index=False,encoding='utf-8-sig',float_format='%.17g')
         write_diagnostic(out/'diagnostics'/(prefix+'-source.json'),{'source':str(source),'sha256':fingerprint,
             'metadata':loaded['context'],'geometry':loaded['geometry'],'conditions':loaded['conditions'],
+            'condition_notices':loaded.get('condition_notices',[]),
             'records':[{k:v for k,v in record.items() if k not in ('data','points')} for record in loaded['records']],
             'ignored':loaded['ignored'],'holds':output['holds']+transfer['holds'],'transfer_metrics':transfer['metrics']})
         for i,receipt in enumerate(loaded['context']['sources'],1):

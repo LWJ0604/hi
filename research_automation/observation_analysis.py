@@ -103,8 +103,9 @@ def analyze_observations(sheets, cfg, context=None):
     fields['sweep_delay_s']=delay
     return {'method_version':om.METHOD_VERSION,'policy':om.POLICY,'branches':branches,'hysteresis_pairs':pairs,
         'anomalies':anomalies,'instrument_settings':settings,'metadata_fields':fields,
-        'metadata_status':{'actual_date':'unconfirmed; folder labels and instrument clock are references only',
-            'geometry':'unconfirmed','illumination':'filename hint only; not user confirmation',
+        'condition_notices':list((context or {}).get('condition_notices',[])),
+        'metadata_status':{'actual_date':fields.get('measurement_date',{}).get('verification','unconfirmed'),
+            'geometry':'unconfirmed','illumination':fields.get('illumination',{}).get('verification','unconfirmed'),
             'human_overrides_created':False},
         'model_parameters':{'mobility':{'value':None,'reason':'requires scoped confirmed geometry, capacitance and low-field/model evidence'},
             'threshold_voltage':{'value':None,'reason':'Vcc operational crossings are separate; physical VT model unconfirmed'},
@@ -113,6 +114,26 @@ def analyze_observations(sheets, cfg, context=None):
 
 
 def analyze_file(source,cfg,context=None):
+    context=copy.deepcopy(context or {})
+    # Snapshot paths belong to generated outputs. Naming and per-file metadata
+    # must use the original Inbox path, while numerical parsing uses the copy.
+    if hasattr(cfg,'paths'):
+        original=cfg.paths['inbox']/context['relative_path'] if context.get('relative_path') else Path(source)
+        from .device_metadata import context_for,resolved_run_conditions
+        try:
+            device_context=context_for(original,cfg)
+        except ValueError:
+            if context.get('relative_path'):raise
+            # Standalone analysis also accepts a file outside the configured Inbox.
+            # It cannot read scoped device metadata there.
+            device_context={'resolved_runs':{},'data':{}}
+        _,conditions,notices=resolved_run_conditions(original,device_context,cfg,context.get('fields',{}))
+        fields=context.setdefault('fields',{})
+        for key in ('measurement_date','illumination'):
+            if key in conditions:
+                fields[key]=conditions[key]
+                fields[key].setdefault('status','confirmed' if fields[key].get('verification')=='user_confirmed' else 'inferred')
+        context['condition_notices']=notices
     sheets,ignored=load_measurements(source,cfg,{})
     result,points=analyze_observations(sheets,cfg,context)
     result['ignored_sheets']=ignored

@@ -268,6 +268,13 @@ def run_conditions(source,context):
     return None,{}
 
 
+def resolved_run_conditions(source,context,cfg,overrides=None):
+    from .naming_metadata import resolve_conditions
+    role,declared=run_conditions(source,context)
+    conditions,notices=resolve_conditions(source,cfg,declared,overrides)
+    return role,conditions,notices
+
+
 def value(item,unit=None,*,confirmed=False,positive=False):
     if not isinstance(item,dict) or item.get('value') is None:return None
     if confirmed and item.get('verification')!='user_confirmed':return None

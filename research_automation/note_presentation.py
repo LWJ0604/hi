@@ -66,6 +66,7 @@ def field(summary, key):
     value=f.get('value')
     if value is None:return '미확인'
     text=number(value, f.get('unit') or '1') if isinstance(value,(int,float)) and not isinstance(value,bool) else cell(value)
+    if f.get('verification')=='naming_rule':return text+' (이름 규칙 자동 입력 · 사람의 실측 확인 아님)'
     if f.get('status') != 'confirmed':
         source=str(f.get('source',''))
         tag='파일명 추정' if 'filename' in source else ('폴더 추정 · 미확인' if 'folder' in source else '미확인 · 기록값')

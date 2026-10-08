@@ -95,16 +95,16 @@ def load_source(source,cfg,read_path=None):
                 traces.append({'number':number,'block':block,'axis':axis,'direction':direction,
                     'gate':gate,'fixed_vd':float(part.vd.iloc[0]) if 'vd' in part and part.vd.nunique()==1 else None,
                     'frame':part,'record':record,'start':float(part[axis].iloc[0]),'end':float(part[axis].iloc[-1])})
-    role,conditions=run_conditions(source,context)
-    conditions=copy.deepcopy(conditions)
-    for key in ('measurement_date','measurement_time','illumination'):
+    from .device_metadata import resolved_run_conditions
+    role,conditions,condition_notices=resolved_run_conditions(source,context,cfg,fields)
+    for key in ('measurement_time',):
         if key in fields:
             entry=fields[key]
             conditions[key]={'value':entry.get('value'),'verification':'user_confirmed' if entry.get('status')=='confirmed' else 'unconfirmed','source':'user_override','history':entry.get('history',[])}
     if 'sweep_delay_s' in fields:conditions['sweep_delay_user_s']=fields['sweep_delay_s'].get('value')
     return {'path':Path(source),'context':context,'cfg':local,'records':records,'ignored':ignored,
             'traces':traces,'points':pd.concat(tables,ignore_index=True) if tables else pd.DataFrame(),
-            'role':role,'conditions':conditions,'geometry':geometry(context,cfg)}
+            'role':role,'conditions':conditions,'condition_notices':condition_notices,'geometry':geometry(context,cfg)}
 
 
 def _eligible(frame,record,cfg):

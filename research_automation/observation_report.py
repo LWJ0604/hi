@@ -224,8 +224,10 @@ def export_report(result,points,directory,title,source_info=None):
     settings=result['instrument_settings']
     fields=result.get('metadata_fields',{})
     field_rows=[]
+    from .naming_metadata import condition_source,condition_status
+    from .note_presentation import LABELS
     for key,item in fields.items():
-        field_rows.append([key,str(item.get('value')),str(item.get('source')),str(item.get('status')),
+        field_rows.append([LABELS.get(key,key),str(item.get('value')),condition_source(item),condition_status(item),
             json.dumps(item.get('candidates',[]),ensure_ascii=False)])
     lines=[f'# {title}', '', '**측정 조건:** '+conditions, '', '[전체 수치 CSV](metrics.csv) · [원본점·계산 근거](report.html#evidence)', '', '## 어떤 측정인가', '',
         description, '',
@@ -266,9 +268,16 @@ def export_report(result,points,directory,title,source_info=None):
     metadata_table='<h2>값·출처·추정/확인/충돌</h2><div class="table"><table><tr>'+''.join('<th>'+esc(c)+'</th>' for c in ['항목','값','출처','상태','후보'])+'</tr>'+''.join('<tr>'+''.join('<td>'+esc(c)+'</td>' for c in row)+'</tr>' for row in field_rows)+'</table></div>'
     document=document.replace('<h2>원본과 수치 그림</h2>',metadata_table+'<h2>원본과 수치 그림</h2>')
     actual_date=fields.get('measurement_date',{})
-    if actual_date.get('source')=='user_override' and actual_date.get('status')=='confirmed':
-        document=document.replace('실제 날짜·소자 치수·광 세기: 미확인','실제 날짜: '+esc(str(actual_date.get('value')))+' (사용자 확인) · 소자 치수·광 세기: 해당 근거 확인')
-        lines=[line.replace('| 실제 측정일 | 사용자 확인 필요; 폴더/Keithley 시각 참고 | 미확인 |','| 실제 측정일 | '+str(actual_date.get('value'))+' (사용자 확인) | 확인 |') for line in lines]
-        (directory/'report.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+    if actual_date.get('value'):
+        state='이름 규칙 자동 입력 · 사람의 실측 확인 아님' if actual_date.get('verification')=='naming_rule' else '사용자 확인' if actual_date.get('status')=='confirmed' else '명시값 · 확인 상태 참조'
+        date_text=str(actual_date['value'])+' · '+state+' · '+str(actual_date.get('source') or '출처 미기록')
+        document=document.replace('실제 날짜·소자 치수·광 세기: 미확인','측정일: '+esc(date_text)+' · 소자 치수·광 세기: 해당 근거 확인')
+        lines=[line.replace('| 실제 측정일 | 사용자 확인 필요; 폴더/Keithley 시각 참고 | 미확인 |','| 실제 측정일 | '+date_text+' | '+state+' |') for line in lines]
+    notices=result.get('condition_notices',[])
+    if notices:
+        document=document.replace('<h2>측정 조건</h2>','<h2>측정 조건</h2>'+''.join('<p class="notice">'+esc(n)+'</p>' for n in notices))
+        position=lines.index('## 조건과 해석 범위')+1
+        lines[position:position]=['']+['**조건 확인:** '+n for n in notices]+['']
+    (directory/'report.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
     (directory/'report.html').write_text(document,encoding='utf-8')
     return {'markdown':str(directory/'report.md'),'html':str(directory/'report.html'),'branches':len(rows),'metrics':len(flat),'observations':observations}

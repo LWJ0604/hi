@@ -123,7 +123,7 @@ def measurement_context(summary, directory, raw_name):
     date = summary.get('research_context', {}).get('fields', {}).get('measurement_date', {})
     context['report'].update(metadata_status=summary.get('research_context', {}).get('metadata_status', 'missing'),
                              metadata_review_required=summary.get('research_context', {}).get('metadata_review_required', True),
-                             measurement_date=date.get('value') if date.get('status') == 'confirmed' else None)
+                             measurement_date=date.get('value') if date.get('status') == 'confirmed' or date.get('verification')=='naming_rule' else None)
     fields=summary.get('research_context',{}).get('fields',{})
     rows=[]
     statuses={'confirmed':'확인','inferred':'추정','conflict':'충돌','missing':'확인 전'}
@@ -132,9 +132,10 @@ def measurement_context(summary, directory, raw_name):
         field=fields.get(key,{})
         candidates=field.get('candidates',[])
         other=[str(c.get('value'))+' ('+str(c.get('source') or '출처 미상')+')' for c in candidates if c.get('value')!=field.get('value')]
+        from .naming_metadata import condition_source,condition_status
         rows.append({'label':label,'value':str(field.get('value')) if field.get('value') is not None else '확인 전',
-            'unit':str(field.get('unit') or ''),'source':str(field.get('source') or '근거 미확인'),
-            'status':statuses.get(field.get('status'),'확인 전'), 'other_evidence':'; '.join(other[:4]) or '다른 값 기록 없음'})
+            'unit':str(field.get('unit') or ''),'source':condition_source(field),
+            'status':condition_status(field), 'other_evidence':'; '.join(other[:4]) or '다른 값 기록 없음'})
     context['report']['metadata_rows']=rows
     context['report']['audit_links']=audit_links(directory)
     label = ('VD' if group['axis'] == 'vg' else 'VG') + '=' + number(group.get('conditions', {}).get('vd' if group['axis'] == 'vg' else 'vg'), 'V')
