@@ -1,14 +1,14 @@
-# 연구 자동화 1.9.1 (로컬 검증본)
+# 연구 자동화 1.9.1
 
 Keithley 측정 파일을 읽어 반복 그래프, 기본 파라미터, 계산 근거와 Obsidian 연구노트를 만드는 Windows용 로컬 앱입니다. **측정 조건 확인 → 원시 데이터와 결과 읽기 → 비교 가능한 조건 선택** 순서로 사용합니다. Python 3.12, Tk GUI, pandas·NumPy·SciPy·Matplotlib을 사용합니다.
 
-[기본 보고서와 상세 메타데이터 양식](docs/basic-report.md) · [1.9 변경점](UPDATE-1.9.0.md) · [branch별 관측 검토](UPDATE-1.8.0.md) · [CI 결과](https://github.com/LWJ0604/hi/actions)
+[기본 보고서와 상세 메타데이터 양식](docs/basic-report.md) · [1.9.1 변경점](UPDATE-1.9.1.md) · [릴리스 노트](RELEASE-NOTES-v1.9.1.md) · [1.9 변경점](UPDATE-1.9.0.md) · [branch별 관측 검토](UPDATE-1.8.0.md) · [CI 결과](https://github.com/LWJ0604/hi/actions)
 
-이 작업 폴더는 **1.9.1 로컬 검증 소스** 기준입니다. 원격 저장소와 릴리스는 이 작업에서 변경하지 않았습니다. [Releases](https://github.com/LWJ0604/hi/releases)의 실제 첨부 버전을 확인하세요. GitHub의 **Code → Download ZIP**은 소스이며 Python 런타임이 포함된 휴대용 패키지와 다릅니다.
+이 README는 **1.9.1 소스** 기준입니다. [Releases](https://github.com/LWJ0604/hi/releases)의 실제 첨부 버전을 확인하세요. GitHub의 **Code → Download ZIP**은 소스이며 Python 런타임이 포함된 휴대용 패키지와 다릅니다.
 
 ## Windows에서 처음 실행하기
 
-이 로컬 검증본은 제공된 새 폴더의 런처로 실행하거나 소스로 설치할 수 있습니다.
+1.9.1은 소스로 설치하거나 릴리스에 직접 첨부한 Windows 휴대용 패키지로 실행할 수 있습니다.
 
 1. **Python 3.12 64비트와 Tcl/Tk**를 설치합니다. 설치할 때 Tcl/Tk 옵션을 포함하세요.
 2. 이 저장소의 소스 ZIP을 내려받아 Vault와 측정 폴더 밖의 새 프로그램 폴더에 풉니다.
@@ -21,7 +21,7 @@ Keithley 측정 파일을 읽어 반복 그래프, 기본 파라미터, 계산 �
 | 소스의 `Setup.cmd` → `Start-GUI.cmd` | `config.json`; 이 PC에서 선택한 경로 | 소스 설치·업데이트 |
 | 휴대용 패키지의 `Start-Local-QA.cmd` | `qa-config.json`; 패키지 안의 `qa-runtime` | Python/Tcl/Tk가 포함된 패키지로 격리 점검 |
 
-`Start-Local-QA.cmd`는 패키지 빌드 시 생성하는 런처로 저장소 소스 ZIP에는 없습니다. Local QA도 같은 앱이며 **입력 폴더나 Vault를 바꾸면 새 경로를 사용**하므로 격리가 계속 유지되는지 확인하세요. GUI 시작만으로 분석·감시·예약 작업을 시작하지 않습니다.
+`Start-Local-QA.cmd`는 패키지 빌드 시 생성하는 런처입니다. 직접 첨부한 소스 ZIP에 이 파일이 포함되어 있어도 Python 런타임은 없으므로 소스 설치에는 `Setup.cmd` → `Start-GUI.cmd`를 사용하세요. Local QA도 같은 앱이며 **입력 폴더나 Vault를 바꾸면 새 경로를 사용**하므로 격리가 계속 유지되는지 확인하세요. GUI 시작만으로 분석·감시·예약 작업을 시작하지 않습니다.
 
 ## 선택한 결과 읽기와 자동 처리
 
@@ -88,7 +88,7 @@ run_conditions:
 - 다른 단위라면 V/A 확인을 선택하지 말고 파일의 명시 단위 또는 `device.md`의 확인된 `run_conditions.units`를 사용하세요. 이 프로필은 전압 V/mV/uV, 전류 A/mA/uA/nA/pA를 지원합니다. 충돌은 따로 표시합니다.
 - 기본 보고서의 평가 전압·전류 단위가 미확인이면 RR·gm·모델 계수 등 의존 계산을 `null`과 사유로 보류합니다. 원시 그림과 독립적으로 가능한 관측은 유지합니다. 단위 확인은 검출한계·선형영역·측정일 확인을 대신하지 않습니다.
 
-**측정일은 원본 분류 폴더의 유효한 전체 날짜에서 자동 입력**합니다. 명시한 파일의 유효한 `device.md` 값과 별도 사용자 override는 자동 규칙보다 우선합니다. 빈 값·unknown·unconfirmed 표기는 규칙을 막지 않습니다. 자동 입력은 사람의 실측 확인과 구분되며 Keithley의 날짜·시각은 참고 정보로 분리합니다. 실제 시간이 없으면 만들어 넣지 않으며 장비 delay와 사용자 기록의 불일치는 그대로 남깁니다.
+**측정일은 원본 분류 폴더의 유효한 전체 날짜에서 자동 입력**합니다. CSV/XLS/XLSX에 적용하며 지원하는 날짜 형식과 중첩 경계는 [이름 규칙](docs/naming-rules.md)을 확인하세요. 명시한 파일의 유효한 `device.md` 값과 별도 사용자 override는 자동 규칙보다 우선합니다. 빈 값·unknown·unconfirmed 표기는 규칙을 막지 않습니다. 자동 입력은 `verification: naming_rule`, `status: inferred`로 기록하고 사람의 실측 확인 이력을 만들지 않습니다. 명시값과 규칙이 다르면 명시값을 유지하고 보고서에 후보·확인 안내를 표시합니다. 구체적인 유효 값에 확인 상태만 unconfirmed인 경우 그 값과 미확인 상태를 보존합니다. Keithley의 날짜·시각은 참고 정보로 분리합니다. 실제 시간이 없으면 만들어 넣지 않으며 장비 delay와 사용자 기록의 불일치는 그대로 남깁니다. 온도·delay·배선·단위·L/W·유전율은 이름 규칙으로 확정하지 않으며 기존 명시값의 출처·상태를 보존합니다.
 
 Excel 파일명에 대소문자와 관계없이 `light`가 포함되면 light, 없으면 dark로 자동 입력합니다. 폴더 이름의 light/dark는 사용하지 않습니다. 자동 입력은 **이름 규칙**이며 사람이 확인한 광 조건과 구별합니다. 광파워가 없으면 responsivity를 확정하지 않습니다.
 
@@ -149,14 +149,26 @@ logs/pipeline.log                           실행/오류 로그
 
 ## 기존 설치 업데이트와 검증
 
-실행 중인 GUI·감시를 종료하고 **기존 config·원본·Vault·DB를 별도로 보관한 뒤 새 프로그램 폴더에 설치**하세요. `Setup.cmd`는 기존 설정을 덮어쓰지 않습니다. 설정을 새 폴더로 옮기면 상대 경로의 기준도 바뀌므로 입력·Vault뿐 아니라 analysis/state/backups 경로도 확인하세요. [변경 미리보기와 보존 안내](UPDATE-1.9.0.md)를 확인하고 대표 파일부터 처리한 뒤 감시를 재시작하세요. 앱 업데이트가 전체 과거 노트를 일괄 갱신하는 승인은 아닙니다.
+현재 실행 중인 GUI는 새 소스를 자동으로 읽지 않습니다. 실행 중인 GUI·감시를 종료하고 **기존 config·원본·Vault·DB를 별도로 보관한 뒤 새 프로그램 폴더에 설치**하세요. `Setup.cmd`는 기존 설정을 덮어쓰지 않습니다. 설정을 새 폴더로 옮기면 상대 경로의 기준도 바뀌므로 입력·Vault뿐 아니라 analysis/state/backups 경로도 확인하세요. [변경 미리보기와 보존 안내](UPDATE-1.9.1.md)를 확인하고 대표 파일부터 처리한 뒤 감시를 재시작하세요. 앱 업데이트가 전체 과거 노트를 일괄 갱신하는 승인은 아닙니다.
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-2026-10-08 사용자 업로드 커밋 [`889d4f9`](https://github.com/LWJ0604/hi/commit/889d4f97c057a49e7d5221743a4453051a47a3be)의 [Windows·Ubuntu CI](https://github.com/LWJ0604/hi/actions/runs/37709011754)는 **각각 266개 테스트를 통과**했습니다. 로컬 Windows에서도 266개 전체 테스트, 공개용 패키지의 45개 회귀와 런처를 확인했습니다. 실제 Tk의 파일 선택·중복 실행 방지·누락 파일 재시도·결과 열기·백업과 Chrome 보고서 화면을 검증했습니다. **다른 PC 설치, 실제 Obsidian 화면과 작업 스케줄러는 미검증**입니다. 최신 커밋의 결과는 [Actions](https://github.com/LWJ0604/hi/actions)에서 확인하세요.
+**1.9.1 로컬 Windows 검증:** 기본 unittest discovery와 같은 284개를 22개 테스트 모듈의 새 Windows 프로세스에서 실행하여 **284/284** 통과했습니다. 한글·공백 경로의 패키지 런타임 회귀 **89/89**, GUI·런처 시작을 확인했습니다. 실제 Tk의 선택 결과·파일 선택·중복 실행 방지·결과 열기·백업과 Chrome의 데스크톱·조건 표·좁은 화면을 검증했습니다. 과학 계산식과 QC 문턱은 유지합니다.
+
+이 결과는 로컬 검증입니다. 원격 CI는 업로드한 해당 커밋의 [Actions](https://github.com/LWJ0604/hi/actions)에서 별도로 확인하세요. 다른 PC 설치, 실제 Obsidian 화면과 작업 스케줄러는 미검증입니다.
 
 ## 날짜 폴더·Excel 광 조건 규칙
 
 [정확한 이름 규칙과 설정](docs/naming-rules.md) · [1.9.1 로컬 변경점](UPDATE-1.9.1.md). 원본 폴더의 가장 가까운 유효한 날짜를 사용하고 `원본/raw/original` 및 분석 결과 폴더 아래의 처리 날짜는 사용하지 않습니다. 명시 정보와 이름 규칙이 다르면 명시값을 유지하고 보고서에 확인 안내를 남깁니다. 실제 시각·단위·온도·delay·배선·유전율은 이 규칙으로 확인하지 않습니다.
+
+## 릴리스 파일
+
+| 파일 | 용도 |
+| --- | --- |
+| `research-automation-windows-v1.9.1.zip` | Python/Tcl/Tk와 의존성을 포함한 Windows 휴대용 패키지 |
+| `research-automation-source-v1.9.1.zip` | 소스·테스트·문서; 실행에는 Python과 의존성 설치 필요 |
+| `SHA256SUMS.txt` | 두 ZIP의 SHA256 확인 |
+
+직접 첨부한 ZIP과 GitHub 자동 **Source code (zip/tar.gz)**는 별도 파일입니다. 자동 Source code는 태그가 가리키는 커밋에서 생성되므로, 태그의 코드와 첨부 패키지가 같은 버전인지 확인하세요. 릴리스에 첨부한 Windows ZIP에는 의존성 설치 출처 메타데이터의 로컬 설치 경로가 남아 있습니다. 실행에 쓰는 측정 원본·노트·DB가 아니라 설치 경로 정보이며, 실제 자료나 사용자별 설정은 공개 소스에 올리지 마세요.
