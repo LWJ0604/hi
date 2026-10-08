@@ -4,7 +4,7 @@ Keithley 측정 파일을 읽어 반복 그래프, 기본 파라미터, 계산 �
 
 [기본 보고서와 상세 메타데이터 양식](docs/basic-report.md) · [1.9 변경점](UPDATE-1.9.0.md) · [branch별 관측 검토](UPDATE-1.8.0.md) · [CI 결과](https://github.com/LWJ0604/hi/actions)
 
-이 README는 `main`의 **1.9.0 소스** 기준입니다. 2026-10-08 확인 시 공개 릴리스에는 **1.6.0**만 등록되어 있습니다. [Releases](https://github.com/LWJ0604/hi/releases)의 실제 첨부 버전을 확인하세요. GitHub의 **Code → Download ZIP**은 소스이며 Python 런타임이 포함된 휴대용 패키지와 다릅니다.
+이 README는 `main`의 **1.9.0 소스** 기준입니다. [Releases](https://github.com/LWJ0604/hi/releases)의 실제 첨부 버전을 확인하세요. GitHub의 **Code → Download ZIP**은 소스이며 Python 런타임이 포함된 휴대용 패키지와 다릅니다.
 
 ## Windows에서 처음 실행하기
 
