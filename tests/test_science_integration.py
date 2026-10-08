@@ -15,6 +15,9 @@ from research_automation.analysis import split_sweeps
 class ResearchIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name);options=copy.deepcopy(DEFAULT)
+        # Retained scientific template path. The basic report is covered in
+        # test_basic_report, including its metadata-dependent job identity.
+        options['benchmark']['enabled']=False
         options['ingest']['stable_seconds']=.01
         (self.root/'config.json').write_text(json.dumps(options), encoding="utf-8");self.cfg=Config(self.root/'config.json');self.cfg.ensure_dirs()
     def tearDown(self):

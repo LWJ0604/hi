@@ -117,6 +117,18 @@ def note(summary,directory,cfg):
     asset_dir.mkdir(parents=True,exist_ok=False)
     for path in directory.iterdir():
         if path.is_file():shutil.copy2(path,asset_dir/path.name)
+    if (directory/'observations').is_dir():
+        shutil.copytree(directory/'observations',asset_dir/'observations')
+    if (directory/'benchmark'/'report.md').is_file():
+        import os,re
+        shutil.copytree(directory/'benchmark',asset_dir/'benchmark')
+        text=(asset_dir/'benchmark'/'report.md').read_text(encoding='utf-8')
+        base=Path(os.path.relpath(asset_dir/'benchmark',destination.parent)).as_posix()
+        text=re.sub(r'\]\((images/|csv/|inputs/|metadata/|diagnostics/)([^)]*)\)',
+            lambda m:']('+base+'/'+m[1]+m[2]+')',text)
+        text+='\n[분리된 기존 계산·진단 자료]('+Path(os.path.relpath(asset_dir,destination.parent)).as_posix()+')\n'
+        atomic_text(destination,text)
+        return destination
     g=representative(summary)
     name='note_representative.png' if (directory/'note_representative.png').is_file() else None
     if not name and g:
@@ -127,5 +139,21 @@ def note(summary,directory,cfg):
         text=render_measurement(summary,asset_dir,assets,relative)
     else:
         text=render_note(summary,assets,directory,name)
+    if (directory/'observations'/'report.md').is_file():
+        from .observation_report import observation_sentences
+        observations=json.loads((directory/'observations'/'observations.json').read_text(encoding='utf-8'))
+        preview=['## 원본에서 읽은 관측 수치','',
+            '같은 방법으로 모든 branch를 추출했습니다. 단위·검출한계 미확인 값은 탐색 관측입니다.', '']
+        preview+=['- '+line for line in observation_sentences(observations)]
+        import os
+        link=Path(os.path.relpath(asset_dir/'observations'/'report.html',destination.parent)).as_posix()
+        preview+=['',f'[모든 branch · 그림 · 지표 선택 · 원본 계산 근거]({link})',
+            '', '**다음 확인:** 원본 전류·전압 단위와 작은 전류의 검출한계를 확인하세요. 서로 다른 stress sweep은 합치지 않습니다.', '']
+        # Keep the complete legacy note and frontmatter, with numerical review
+        # above the legacy sections. Fresh notes only; existing notes are guarded.
+        if text.startswith('---\n') and '\n---\n' in text[4:]:
+            end=text.index('\n---\n',4)+5
+            text=text[:end]+'\n'+'\n'.join(preview)+'\n'+text[end:]
+        else:text='\n'.join(preview)+'\n'+text
     atomic_text(destination,text)
     return destination

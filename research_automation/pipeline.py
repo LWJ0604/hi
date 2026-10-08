@@ -68,7 +68,8 @@ def process_one(source, source_hash, job_id, cfg, store, log):
         metadata = parse_filename(source.name)
         metadata["_filename_hints"] = filename_hints(source.name)
         phase = "parse"
-        sheets, ignored = load_measurements(snapshot, cfg, metadata)
+        from .device_metadata import context_for,measurement_config
+        sheets, ignored = load_measurements(snapshot, measurement_config(context_for(source,cfg),cfg), metadata)
         phase = "analysis"
         summary, curves = analyze(sheets, cfg)
         instrument = next((sheet["instrument_settings"] for sheet in sheets if "instrument_settings" in sheet), {})
@@ -95,17 +96,44 @@ def process_one(source, source_hash, job_id, cfg, store, log):
         metrics = [{"group_id": group["group_id"], "axis": group["axis"], "trace_id": group["trace_id"], "conditions": json.dumps(group["conditions"]), "direction": group["direction"], "n": group["n"], "rr_status": group["rectification"]["status"], "rr_abs_positive_over_negative": group["rectification"].get("ratio_abs_i_positive_over_negative"), "rr_evaluation_abs_vd_v": group["rectification"]["voltage_v"], "rr_unit": "1", "current_unit": "A", "gm_unit": "A/V", "transfer_status": group["transfer_metrics"]["status"], **{key: group["transfer_metrics"].get(key) for key in ("gm_max_a_per_v", "gm_min_a_per_v", "gm_peak_vg_v", "current_range_ratio_abs")}} for group in summary["groups"]]
         pd.DataFrame(metrics).assign(**csv_metadata).to_csv(stage / "metrics.csv", index=False, encoding="utf-8-sig")
         export_metrics(summary, stage)
-        summary["figures"] = plots(curves, summary, stage)
+        basic_enabled=cfg.data['benchmark']['enabled']
+        # The default basic report draws complete acquisition blocks once.
+        # Keep the legacy numerical exports; per-trace legacy figures remain
+        # available with benchmark.enabled=false and explicit plot refresh.
+        summary["figures"] = [] if basic_enabled else plots(curves, summary, stage)
         from .fet_parameters import export_fet
         from .fet_figures import fet_figures
         additional=export_fet(curves,summary,stage,cfg)
-        summary['figures'].extend(fet_figures(additional,summary,stage))
+        if not basic_enabled:summary['figures'].extend(fet_figures(additional,summary,stage))
         from .research_report import export_report
         from .research_panels import research_panels
         report=export_report(curves,summary,stage,cfg,additional)
-        new_figures,_=research_panels(curves,summary,stage,additional,report)
-        summary['figures'].extend(new_figures)
+        if not basic_enabled:
+            new_figures,_=research_panels(curves,summary,stage,additional,report)
+            summary['figures'].extend(new_figures)
         summary['report_format']='fet-template-report-1'
+        from .observation_analysis import analyze_observations
+        from .observation_report import export_report as export_observation_report
+        observations,observation_points=analyze_observations(sheets,cfg,context)
+        observations['code_sha256']=code_fingerprint()
+        if basic_enabled:
+            write_json(stage/'observations'/'observations.json',observations)
+            observation_points.to_csv(stage/'observations'/'points.csv',index=False,encoding='utf-8-sig')
+        else:
+            export_observation_report(observations,observation_points,stage/'observations',source.name,
+                {'relative_path':relative,'sha256':source_hash})
+        summary['observation_report_format']=observations['method_version']
+        if not basic_enabled:summary['observation_report']='observations/report.html'
+        from .observation_report import observation_sentences
+        summary['observation_headlines']=observation_sentences(observations)[:3]
+        if cfg.data['benchmark']['enabled']:
+            phase='basic report'
+            from .benchmark_batch import generate
+            basic=generate(cfg,[relative],cached=True)
+            shutil.copytree(basic['output'],stage/'benchmark')
+            summary['benchmark_report']='benchmark/report.html'
+            summary['benchmark_report_format']='basic-parameters-1'
+            summary['benchmark_summary']=basic['summary']
         phase = "publication"
         cache = cfg.paths["state"] / "ai-cache" / (job_id + ".json")
         if cache.exists():
@@ -193,6 +221,9 @@ def scan(cfg, retry_failed=False, *, on_progress=None, stop_event=None, sources=
                         continue
                     source_hash = digest(source)
                     identity = f"{relative}\n{source_hash}\n{cfg.fingerprint}\n{__version__}\n{code_fingerprint()}\n{override_fingerprint(cfg, relative, source_hash)}"
+                    if cfg.data['benchmark']['enabled']:
+                        from .benchmark_batch import dependencies
+                        identity+='\n'+json.dumps(dependencies(cfg,source),sort_keys=True)
                     job_id = hashlib.sha256(identity.encode()).hexdigest()
                     previous = store.get(job_id)
                     if previous and previous["status"] == "completed" and Path(previous["result_path"]).exists() and Path(previous["note_path"]).exists():

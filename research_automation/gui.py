@@ -46,6 +46,8 @@ class ResearchApp:
         self.inbox = tk.StringVar()
         self.vault = tk.StringVar()
         self.ai_enabled = tk.BooleanVar(value=False)
+        self.confirmed_va = tk.BooleanVar(value=False)
+        self.electrode_pair = tk.StringVar()
         self.api_key = tk.StringVar()
         self.key_status = tk.StringVar()
         self.activity = tk.StringVar(value="준비 중")
@@ -101,7 +103,13 @@ class ResearchApp:
             button = ttk.Button(folders, text="폴더 선택", command=lambda var=variable: self._choose(var))
             button.grid(row=row, column=2, pady=2)
             self.settings_controls += [entry, button]
-        ttk.Label(folders, text="입력: 소자 이름 / 측정 날짜 / 파일.xls   ·   조명 표기가 없으면 dark 기본값 (미확인) · 파일명 추정과 사용자 확인을 구분", style="Muted.TLabel").grid(row=2, column=1, sticky="w", padx=10, pady=(4, 0))
+        ttk.Label(folders, text="조건: 가까운 device.md의 값·출처 적용 · 실제 날짜는 해당 파일에만 적용 · 원본과 사용자 메모 보존", style="Muted.TLabel").grid(row=2, column=1, sticky="w", padx=10, pady=(4, 0))
+        units=ttk.Checkbutton(folders,text='내 측정의 단위 없는 열은 전압 V / 전류 A로 확인 · 명시된 파일 단위가 우선',variable=self.confirmed_va)
+        units.grid(row=3,column=1,columnspan=2,sticky='w',padx=10,pady=(4,0));self.settings_controls.append(units)
+        pair_frame=ttk.Frame(folders);pair_frame.grid(row=4,column=1,columnspan=2,sticky='ew',padx=10,pady=(4,0))
+        ttk.Label(pair_frame,text='계산 전극쌍:').pack(side='left')
+        pair_entry=ttk.Entry(pair_frame,textvariable=self.electrode_pair,width=18);pair_entry.pack(side='left',padx=6)
+        ttk.Label(pair_frame,text='device.md의 키 · 비워 두면 명시한 active_electrode_pair 사용',style='Muted.TLabel').pack(side='left');self.settings_controls.append(pair_entry)
         ai = ttk.LabelFrame(shell, text="AI 해석")
         ai.grid(row=2, sticky="ew", pady=(0, 10))
         ai.columnconfigure(1, weight=1)
@@ -127,6 +135,9 @@ class ResearchApp:
             self.controls.append(button)
         self.stop_button = ttk.Button(actions, text="중지", command=self.stop)
         self.stop_button.grid(row=0, column=6)
+        report_button=ttk.Button(actions,text='파일 선택 → 기본 보고서',command=self._report_files,style='Primary.TButton')
+        report_button.grid(row=1,column=0,columnspan=2,sticky='w',pady=(6,0));self.controls.append(report_button)
+        ttk.Label(actions,text='한 파일 또는 명시적 두 파일 · device.md 조건 적용 · 원본과 기존 노트 보존',style='Muted.TLabel').grid(row=1,column=2,columnspan=5,sticky='w')
         status = ttk.Frame(shell)
         status.grid(row=4, sticky="ew", pady=(0, 8))
         status.columnconfigure(0, weight=1)
@@ -158,7 +169,7 @@ class ResearchApp:
         results = ttk.Frame(shell)
         results.grid(row=6, sticky="ew", pady=(8, 8))
         ttk.Button(results, text="선택 노트 열기", command=self._open_note).grid(row=0, column=0, padx=(0, 8))
-        ttk.Button(results, text="선택 결과 폴더", command=self._open_result).grid(row=0, column=1, padx=(0, 8))
+        ttk.Button(results, text="선택 기본 보고서", command=self._open_result).grid(row=0, column=1, padx=(0, 8))
         ttk.Button(results, text="전체 측정 목록", command=self._open_catalog).grid(row=0, column=2, padx=(0, 8))
         ttk.Button(results, text="설정 파일", command=lambda: self._open(self.config_path)).grid(row=0, column=3)
         review = ttk.Button(results, text="메타데이터 검토", command=self._review_metadata)
@@ -172,6 +183,8 @@ class ResearchApp:
         refresh_button.grid(row=1, column=1, pady=(8,0), padx=(0,8));self.controls.append(refresh_button)
         note_button=ttk.Button(results,text='선택 노트 미리보기',command=self._preview_notes)
         note_button.grid(row=1,column=2,pady=(8,0),padx=(0,8));self.controls.append(note_button)
+        observe_button=ttk.Button(results,text='선택 측정 수치 검토',command=self._observe_selected)
+        observe_button.grid(row=2,column=0,columnspan=2,pady=(8,0),sticky='w');self.controls.append(observe_button)
         fet_button=ttk.Button(results,text='FET 추출 조건',command=self._fet_settings)
         fet_button.grid(row=1,column=3,pady=(8,0));self.controls.append(fet_button)
         ttk.Button(results, text='RR / gm 계산 근거', command=self._show_evidence).grid(row=1, column=4, padx=(8,0), pady=(8,0))
@@ -199,6 +212,9 @@ class ResearchApp:
         self.inbox.set(str(cfg.paths["inbox"]))
         self.vault.set(str(cfg.paths["vault"]))
         self.ai_enabled.set(cfg.data["ai"]["enabled"])
+        profile=cfg.data['measurement_profile']
+        self.confirmed_va.set(profile['confirmed'] and profile['voltage_unit']=='V' and profile['current_unit']=='A')
+        self.electrode_pair.set(cfg.data['benchmark']['electrode_pair'] or '')
         self._update_key_status()
         if cfg.data["science"]["offline"]:
             self.key_status.set("연구 검토 모드: 외부 API 호출 차단 · 규칙 기반 요약")
@@ -230,6 +246,8 @@ class ResearchApp:
             self._notice("설정 파일을 확인한 뒤 새로고침을 누르세요.")
             return
         inbox, vault, enabled = self.inbox.get(), self.vault.get(), self.ai_enabled.get()
+        confirmed_va=self.confirmed_va.get()
+        electrode_pair=self.electrode_pair.get()
         if os.name=="nt" and mode in ("scan","watch","scan_retry") and (not Path(inbox).is_dir() or not Path(vault).is_dir()):
             self._notice("현재 PC의 실제 측정 폴더와 Vault를 선택하세요. 다른 사용자 폴더를 자동으로 생성하지 않습니다.");return
         config_path = self.config_path
@@ -239,7 +257,7 @@ class ResearchApp:
                 self._start(mode)
             else:
                 self._notice("설정을 저장했습니다.")
-        self._task(lambda: save_settings(config_path, inbox, vault, enabled), saved)
+        self._task(lambda: save_settings(config_path, inbox, vault, enabled,confirmed_va,electrode_pair), saved)
 
     def _register_key(self):
         value = self.api_key.get()
@@ -323,7 +341,7 @@ class ResearchApp:
             return
         text = [f"조건: {row['measurement_date']} · {row['device_name']} · {row['condition_label']}",
                 '현재 판단: QC는 데이터 점검 결과입니다. 연구 사용·비교에는 단위, 광 조건, 원래 sweep과 이력 확인이 필요합니다.',
-                '다음 확인: 메타데이터 검토에서 보류/충돌 조건을 확인하세요.' if row['review_required'] else '다음 확인: RR / gm 계산 근거에서 평가 전압과 원본점을 확인하세요.',
+                '다음 확인: '+row['next_check'] if row.get('next_check') else '다음 확인: 메타데이터 검토에서 보류/충돌 조건을 확인하세요.' if row['review_required'] else '다음 확인: RR / gm 계산 근거에서 평가 전압과 원본점을 확인하세요.',
                 f"원본: {row['source']}", f"처리: {STATUS.get(row['status'], row['status'])} · QC: {row['qc']} · AI: {AI_STATUS.get(row.get('ai_status'), row.get('ai_status') or '—')}"]
         text.insert(2, row.get('metric_summary', '사용 가능한 지표: 완료 결과를 선택하세요.'))
         text += [str(row[key]) for key in ("error", "details", "qc_details") if row.get(key)]
@@ -385,7 +403,8 @@ class ResearchApp:
         if not row or not row.get("result_path"):
             self._notice("분석 결과가 있는 완료 파일을 선택하세요.")
             return
-        self._open(Path(row["result_path"]).parent)
+        folder=Path(row['result_path']).parent
+        self._open(folder/'benchmark'/'report.html' if (folder/'benchmark'/'report.html').is_file() else folder)
 
     def _open_catalog(self):
         if not self.cfg:
@@ -463,6 +482,38 @@ class ResearchApp:
             self._notice('기존 노트·계산·QC를 보존하고 새 노트 미리보기와 파라미터 그림을 저장했습니다.')
             self._open_generated_note(result['files'][0]['note'])
         self._task(lambda:preview_notes(cfg,[source]),done)
+
+    def _observe_selected(self):
+        row=self._selected()
+        if not row or not row.get('source'):
+            self._notice('수치를 검토할 측정 파일을 작업 목록에서 선택하세요.');return
+        self._report_sources([row['source']])
+
+    def _report_files(self):
+        if not self.cfg or self.controller.busy or self.task_callback:return
+        inbox=Path(self.inbox.get()).resolve()
+        if not inbox.is_dir():self._notice('현재 PC의 측정 입력 폴더를 선택하세요.');return
+        selected=filedialog.askopenfilenames(parent=self.root,initialdir=str(inbox),title='보고서 입력 선택 · 하나 또는 명시적인 두 파일',filetypes=[('측정 파일','*.csv *.xls *.xlsx')])
+        if not selected:return
+        try:
+            sources=[Path(p).resolve().relative_to(inbox).as_posix() for p in selected]
+        except ValueError:self._notice('선택한 입력 폴더 안의 측정 파일을 선택하세요.');return
+        self._report_sources(sources)
+
+    def _report_sources(self,sources):
+        from .benchmark_batch import generate
+        from .store import lock
+        settings=(self.config_path,self.inbox.get(),self.vault.get(),self.ai_enabled.get(),self.confirmed_va.get(),self.electrode_pair.get())
+        def work():
+            cfg=save_settings(*settings)
+            with lock(cfg):return generate(cfg,sources,stop_event=self.controller.stop_event,
+                on_progress=lambda outcome:self.controller.emit('progress',outcome=outcome))
+        def done(result):
+            self._load_config()
+            self._notice('선택 측정의 원시 그래프·기초 수치·모델 잔차를 새 폴더에 저장했습니다.' if not result['stopped'] else '중지 요청을 반영했습니다. 완료된 파일의 보고서를 확인하세요.')
+            self._open(result['html'])
+        self._task(work,done)
+        self._notice('선택 파일의 원시점·기초 수치·모델 잔차를 계산 중…')
 
     def _open_generated_note(self,path):
         try:

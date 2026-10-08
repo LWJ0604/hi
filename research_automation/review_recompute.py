@@ -25,12 +25,15 @@ def metadata_recompute(cfg,result_path,changed_fields):
     if digest(source)!=prior['source_sha256']:raise ValueError('원본 내용이 바뀌었습니다. 선택 원본을 새로 분석하세요.')
     snapshot_path=Path(result_path).parent/'config_snapshot.json'
     saved=json.loads(snapshot_path.read_text(encoding='utf-8-sig')) if snapshot_path.exists() else {}
-    same_science=all(saved.get(k)==cfg.data[k] for k in ('analysis','columns','ingest','qc','science'))
+    same_science=all(saved.get(k)==cfg.data[k] for k in ('analysis','columns','ingest','qc','science','measurement_profile','benchmark'))
     if prior.get('schema_version',0)<4 or prior.get('code_sha256')!=code_fingerprint() or not same_science:
         from .pipeline import scan
         return scan(cfg,sources=[prior['source_relative_path']])
     relative=prior['source_relative_path']; source_hash=prior['source_sha256']
     identity=f'{relative}\n{source_hash}\n{cfg.fingerprint}\n{__version__}\n{code_fingerprint()}\n{fingerprint(cfg,relative,source_hash)}'
+    if cfg.data['benchmark']['enabled']:
+        from .benchmark_batch import dependencies
+        identity+='\n'+json.dumps(dependencies(cfg,source),sort_keys=True)
     job=hashlib.sha256(identity.encode()).hexdigest()
     with lock(cfg):
         store=Store(cfg)
@@ -48,6 +51,7 @@ def metadata_recompute(cfg,result_path,changed_fields):
             enrich_context(summary,cfg)
             for path in Path(result_path).parent.iterdir():
                 if path.is_file():shutil.copy2(path,stage/path.name)
+                elif path.name=='observations':shutil.copytree(path,stage/path.name)
             for filename in ('normalized.csv','curves.csv','metrics.csv','fit_results.csv'):
                 frame=pd.read_csv(stage/filename,float_precision='round_trip')
                 for key,value in csv_context(summary['research_context']).items():frame[key]=value
@@ -61,7 +65,7 @@ def metadata_recompute(cfg,result_path,changed_fields):
             while (cfg.paths['vault']/summary['vault_note_relative_path']).exists() or (cfg.paths['vault']/summary['vault_assets_relative_path']).exists():
                 counter+=1;note,assets=vault_locations(summary)
                 summary['vault_note_relative_path']=note[:-3]+f'_preserved-r{counter}.md';summary['vault_assets_relative_path']=assets+f'_preserved-r{counter}'
-            if set(changed_fields)&{'device_name','illumination','units_confirmed'}:
+            if not cfg.data['benchmark']['enabled'] and set(changed_fields)&{'device_name','illumination','units_confirmed'}:
                 curves=pd.read_csv(stage/'curves.csv',float_precision='round_trip')
                 summary['figures']=plots(curves,summary,stage)
             export_metrics(summary,stage)
@@ -73,8 +77,16 @@ def metadata_recompute(cfg,result_path,changed_fields):
             from .research_panels import research_panels
             additional=export_fet(curves,summary,stage,cfg)
             report=export_report(curves,summary,stage,cfg,additional)
-            new_figures,_=research_panels(curves,summary,stage,additional,report)
-            summary['figures']=list(dict.fromkeys([*summary.get('figures',[]),*new_figures]))
+            if cfg.data['benchmark']['enabled']:
+                from .benchmark_batch import generate
+                basic=generate(cfg,[relative],cached=True)
+                shutil.copytree(basic['output'],stage/'benchmark')
+                summary['figures']=[];summary['benchmark_report']='benchmark/report.html'
+                summary['benchmark_report_format']='basic-parameters-1';summary['benchmark_summary']=basic['summary']
+                summary['recalculation']['basic_models_refit']=True
+            else:
+                new_figures,_=research_panels(curves,summary,stage,additional,report)
+                summary['figures']=list(dict.fromkeys([*summary.get('figures',[]),*new_figures]))
             summary['report_format']='fet-template-report-1'
             write_json(stage/'result.json',summary);write_json(stage/'config_snapshot.json',cfg.data)
             final=cfg.paths['analysis']/'runs'/('v'+__version__)/job

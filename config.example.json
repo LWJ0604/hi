@@ -113,5 +113,26 @@
     "knee_axis": "linear",
     "knee_min_side_points": 4,
     "offline": true
+  },
+  "benchmark": {
+    "enabled": true,
+    "metadata_root": null,
+    "electrode_pair": null,
+    "fit_range_v": [
+      0.6,
+      2.0
+    ],
+    "gm_windows_v": [
+      2.0,
+      4.0,
+      8.0
+    ],
+    "min_fit_points": 5
+  },
+  "measurement_profile": {
+    "voltage_unit": null,
+    "current_unit": null,
+    "confirmed": false,
+    "source": null
   }
 }

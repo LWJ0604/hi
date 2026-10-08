@@ -28,6 +28,35 @@ class KeithleyTests(unittest.TestCase):
         path.write_text(json.dumps(self.options), encoding="utf-8")
         return Config(path)
 
+    def test_exact_chart_helper_copies_use_settings_and_keep_gate_current(self):
+        f=pd.DataFrame(np.column_stack([[-1,0,1],[1e-10,2e-10,3e-10],[1e-12]*3,[-1,0,1],[1e-10,2e-10,3e-10]]),
+            columns=['GateV','DrainI','GateI','GateV','DrainI'])
+        sheets,_=load_measurements(self.book(f,drain_bias=-.5),self.cfg,{})
+        self.assertEqual(len(sheets),1)
+        self.assertEqual(sheets[0]['data']['vd'].unique().tolist(),[-.5])
+        self.assertEqual(len(sheets[0]['duplicate_export_columns']),2)
+        self.assertIn('ig',sheets[0]['data'])
+
+    def test_different_repeated_currents_without_vds_remain_rejected(self):
+        f=pd.DataFrame([[-1,1e-10,2e-10],[0,2e-10,3e-10],[1,3e-10,4e-10]],columns=['GateV','DrainI','DrainI'])
+        with self.assertRaisesRegex(ValueError,'missing/conflicting Vds'):
+            load_measurements(self.book(f),self.cfg,{})
+
+    def test_indexed_chart_copy_does_not_hide_other_traces(self):
+        f=pd.DataFrame([[-1,1e-10,-1,2e-10,1e-10],[0,2e-10,0,3e-10,2e-10],[1,3e-10,1,4e-10,3e-10]],
+            columns=['GateV(1)','DrainI(1)','GateV(2)','DrainI(2)','DrainI(1)'])
+        sheets,_=load_measurements(self.book(f),self.cfg,{})
+        self.assertEqual(len(sheets),2)
+        self.assertEqual(len(sheets[0]['duplicate_export_columns']),1)
+        self.assertNotEqual(sheets[0]['data']['id'].tolist(),sheets[1]['data']['id'].tolist())
+
+    def test_forward_only_chart_copy_preserves_entire_reverse_sweep(self):
+        f=pd.DataFrame([[-1,1e-10,1e-12,-1,1e-10],[0,2e-10,1e-12,0,2e-10],[1,3e-10,1e-12,1,3e-10],
+            [0,4e-10,1e-12,np.nan,np.nan],[-1,5e-10,1e-12,np.nan,np.nan]],columns=['GateV','DrainI','GateI','GateV','DrainI'])
+        sheets,_=load_measurements(self.book(f),self.cfg,{})
+        self.assertEqual(len(sheets),1);self.assertEqual(len(sheets[0]['data']),5)
+        self.assertEqual(sheets[0]['data']['id'].iloc[-1],5e-10)
+
     def book(self, frame, axis="vg", drain_bias=2):
         settings = pd.DataFrame([
             ["Test Name", "Test@misleading99", None, None],

@@ -22,7 +22,8 @@ class NoMeasurementHeader(ValueError):
 
 
 def trace_number(header):
-    match = re.search(r"\((\d+)\)\s*$", str(header).strip())
+    clean=re.sub(r'\s*\{col:\d+\}$','',str(header)).strip()
+    match = re.search(r"\((\d+)\)\s*$", clean)
     return int(match.group(1)) if match else None
 
 
@@ -57,11 +58,24 @@ def column_info(header, cfg):
         if UNITS[unit][0] != expected:
             raise ValueError(f"{header}: 전압/전류 단위가 맞지 않습니다.")
         factor = UNITS[unit][1]
+    elif cfg.data.get('measurement_profile',{}).get('confirmed'):
+        profile=cfg.data['measurement_profile']
+        default=profile['voltage_unit' if canonical in ('vd','vg') else 'current_unit']
+        expected='voltage' if canonical in ('vd','vg') else 'current'
+        if default not in UNITS or UNITS[default][0]!=expected:raise ValueError('확인된 측정 단위 프로필을 확인하세요.')
+        factor=UNITS[default][1]
     elif not cfg.data["columns"]["assume_si_for_unitless"]:
         raise ValueError(f"{header}: 단위가 없습니다. mapping/scales와 SI 가정 정책을 확인하세요.")
     else:
         assumption = f"{header}: 단위 없는 컬럼을 V/A로 가정; 추가 scale={cfg.data['columns']['scales'].get(canonical, 1)}"
     return canonical, factor * cfg.data["columns"]["scales"].get(canonical, 1), assumption
+
+
+def header_unit(header):
+    text=re.sub(r'\s*\{col:\d+\}$','',str(header)).strip().replace('µ','u').replace('μ','u')
+    text=re.sub(r'\(\d+\)\s*$','',text).strip()
+    match=re.search(r'\s*[\[(]([^\])]+)[\])]\s*$',text)
+    return match.group(1).strip() if match else text.rsplit(' ',1)[-1] if ' ' in text and text.rsplit(' ',1)[-1] in UNITS else None
 
 
 def header_index(rows, cfg):
@@ -139,12 +153,22 @@ def normalize(frame, sheet, header, cfg, metadata, settings=None, source_sheet=N
                 "header_cell": cell_address(position, header + 1) if position else None,
                 "unit_status": "inferred" if assumption else "confirmed",
                 "origin": frame.attrs.get("voltage_origins", {}).get(canonical, "exported_voltage" if canonical in ("vd", "vg") else "measured_current")})
+            profile=cfg.data.get('measurement_profile',{})
+            declared=header_unit(source)
+            mapping[canonical]['unit_source']='file_header' if declared else 'user_profile' if profile.get('confirmed') else 'SI_assumption'
+            mapping[canonical]['declared_unit']=declared
+            if profile.get('confirmed'):
+                expected=profile['voltage_unit' if canonical in ('vd','vg') else 'current_unit']
+                mapping[canonical]['profile_source']=profile.get('source')
+                if declared and declared!=expected:
+                    warnings.append(f'{source}: 파일 단위 {declared}가 사용자 기본 {expected}와 달라 파일 단위로 환산했습니다.')
+                    mapping[canonical]['unit_conflict']=True
             if assumption:
                 warnings.append(assumption)
     for key, bias in settings.get("fixed_bias_v", {}).items():
         if key not in columns:
             columns[key] = pd.Series(bias, index=frame.index)
-            mapping[key] = {"source": f"Settings/{key}/Start/Level", "factor_to_si": 1, "origin": "programmed_bias"}
+            mapping[key] = {"source": f"Settings/{key}/Start/Level", "factor_to_si": 1, "origin": "programmed_bias", "unit_status":"confirmed", "unit_source":"instrument_program_V"}
             warnings.append(f"{key}={bias:g} V: Settings의 고정 설정값 사용; 실측 전압이 아님")
     axis = cfg.data["analysis"]["x"]
     axis_source = "configuration"
@@ -280,10 +304,50 @@ def read_settings(book):
 
 
 def normalize_traces(frame, sheet, header, cfg, metadata, settings):
+    indexed_copies=[];retained={};omit=[]
+    for column in frame.columns:
+        info=column_info(column,cfg);number=trace_number(column)
+        if info is None or number is None:continue
+        key=(info[0],number)
+        if key in retained:
+            original=retained[key]
+            if column_info(original,cfg)[1]!=info[1] or not frame[column].equals(frame[original]):
+                raise ValueError(f'{sheet}/{column}: same indexed channel has different values or unit scale')
+            omit.append(column)
+            indexed_copies.append({'header':column,'source_column':frame.attrs.get('source_columns',{}).get(column),
+                'retained_header':original,'trace_id':number,'reason':'exact indexed chart copy; identical unit scale'})
+        else:retained[key]=column
+    if omit:frame=frame[[c for c in frame.columns if c not in omit]]
     # Repeated DrainI columns share GateV and a row of per-column Vds values.
     currents = [c for c in frame.columns if column_info(c,cfg) and column_info(c,cfg)[0] == "id"]
-    if len(currents) > 1 and any("{col:" in str(c) for c in currents):
+    if len(currents) > 1 and any("{col:" in str(c) for c in currents) and all(trace_number(c) is None for c in currents):
         common = [c for c in frame.columns if column_info(c,cfg) and column_info(c,cfg)[0] == "vg"]
+        # KTEI workbooks may append an exact GateV/DrainI copy for a chart.
+        # This is distinct from multiple biases with a Vds row above the header.
+        # Collapse only demonstrably identical columns with identical scales,
+        # a fixed drain bias in Settings, and no per-column Vds labels.
+        upper_values=[str(text) for current in currents for _,text in frame.attrs.get('upper_conditions',{}).get(current,[])]
+        labeled=any(re.search(r'(?i)vds?\s*=',text) for text in upper_values)
+        def identical_full_or_prefix(column,original):
+            if column_info(column,cfg)[1]!=column_info(original,cfg)[1]:return False
+            if frame[column].equals(frame[original]):return True
+            mask=frame[column].notna().to_numpy();positions=np.flatnonzero(mask)
+            # A graph helper can contain just the forward prefix followed by
+            # blank padding. Verify every populated cell at the same source row;
+            # never replace the longer original or infer an unmeasured bias.
+            return bool(len(positions)>=2 and np.array_equal(positions,np.arange(len(positions)))
+                and frame.loc[mask,column].equals(frame.loc[mask,original]))
+        same_ids=all(identical_full_or_prefix(c,currents[0]) for c in currents)
+        same_gates=bool(common) and all(identical_full_or_prefix(c,common[0]) for c in common)
+        paired_padding=len(currents)==len(common) and all(frame[c].notna().equals(frame[g].notna()) for c,g in zip(currents,common))
+        if not labeled and same_ids and same_gates and paired_padding and settings.get('sweep_axis')=='vg' and 'vd' in settings.get('fixed_bias_v',{}):
+            omitted=set(currents[1:]+common[1:])
+            record=normalize(frame[[c for c in frame.columns if c not in omitted]],sheet,header,cfg,metadata,settings)
+            record['duplicate_export_columns']=[{'source_column':frame.attrs.get('source_columns',{}).get(c),'header':c,
+                'populated_cells':int(frame[c].notna().sum()),
+                'reason':'exact full/prefix chart copy at same source rows; identical scale; longer original and reverse preserved'} for c in frame.columns if c in omitted]
+            record['warnings'].append('동일 GateV/DrainI 그래프용 복사 열을 기록하고 원본 열만 사용했습니다. 다른 값/배율/조건 열은 합치지 않습니다.')
+            return [record]
         records = []
         for index, current in enumerate(currents,1):
             upper = frame.attrs.get("upper_conditions", {}).get(current, [])
@@ -314,7 +378,9 @@ def normalize_traces(frame, sheet, header, cfg, metadata, settings):
         return [normalize(frame, sheet, header, cfg, metadata, settings)]
     records = []
     for number, columns in sorted(indexed.items()):
-        records.append(normalize(frame[common + columns], f"{sheet}/trace-{number:03d}", header, cfg, metadata, settings, sheet, number))
+        record=normalize(frame[common + columns], f"{sheet}/trace-{number:03d}", header, cfg, metadata, settings, sheet, number)
+        record['duplicate_export_columns']=[item for item in indexed_copies if item['trace_id']==number]
+        records.append(record)
     return records
 
 

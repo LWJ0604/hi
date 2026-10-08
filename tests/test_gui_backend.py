@@ -74,7 +74,9 @@ class SettingsTests(Base):
 
 class ControllerTests(Base):
     def events(self, controller):
-        controller.thread.join(timeout=15)
+        # Native reports also export SVG/PNG and model evidence. Wait for the
+        # worker to finish before asserting or cleaning its Windows log files.
+        controller.thread.join(timeout=90)
         self.assertFalse(controller.busy)
         output = []
         while True:

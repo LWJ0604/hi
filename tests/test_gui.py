@@ -29,7 +29,7 @@ class GuiTests(Base):
     def tearDown(self):
         self.app.controller.stop()
         if self.app.controller.thread:
-            self.app.controller.thread.join(timeout=15)
+            self.app.controller.thread.join(timeout=90)
         try:
             self.app._destroy()
         except tk.TclError:
@@ -50,7 +50,7 @@ class GuiTests(Base):
         self.assertEqual(self.callback_errors, [])
 
     def wait_idle(self):
-        deadline = time.monotonic() + 15
+        deadline = time.monotonic() + 90
         while time.monotonic() < deadline:
             self.pump(.05)
             if not self.app.controller.busy and self.app.task_callback is None and self.app.controller.events.empty():

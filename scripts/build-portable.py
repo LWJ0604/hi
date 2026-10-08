@@ -36,6 +36,8 @@ def main():
     parser.add_argument('--site-packages',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--source-commit',required=True)
+    parser.add_argument('--measurement-profile',type=Path,help='현재 사용자가 확인한 단위 프로필. Windows 로컬 QA 설정에만 적용')
+    parser.add_argument('--electrode-pair',help='현재 사용자가 선택한 전극쌍 키. Windows 로컬 QA 설정에만 적용')
     args=parser.parse_args()
     if not (args.runtime/'python.exe').is_file():parser.error('Windows Python runtime missing')
     if not args.site_packages.is_dir():parser.error('site-packages missing')
@@ -60,6 +62,12 @@ def main():
             else:p.unlink()
     config=copy.deepcopy(DEFAULT)
     config['paths']={k:'qa-runtime/'+v for k,v in config['paths'].items()}
+    if args.measurement_profile:
+        profile=json.loads(args.measurement_profile.read_text(encoding='utf-8'))
+        if set(profile)!=set(DEFAULT['measurement_profile']) or profile['confirmed'] is not True or profile['voltage_unit']!='V' or profile['current_unit']!='A' or not isinstance(profile['source'],str) or not profile['source'].strip():
+            raise ValueError('사용자 확인 V/A 단위 프로필을 지정하세요.')
+        config['measurement_profile']=profile
+    if args.electrode_pair:config['benchmark']['electrode_pair']=args.electrode_pair
     (bundle/'qa-config.json').write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding='utf-8')
     launcher='@echo off\r\nsetlocal\r\ncd /d "%~dp0"\r\nset "TCL_LIBRARY=runtime/tcl/tcl8.6"\r\nset "TK_LIBRARY=runtime/tcl/tk8.6"\r\n"%~dp0runtime\\python.exe" -c "from research_automation.config import Config; Config(\'qa-config.json\').ensure_dirs()"\r\nif errorlevel 1 exit /b 1\r\n"%~dp0runtime\\pythonw.exe" -m research_automation.gui --config "%~dp0qa-config.json" %*\r\nexit /b %errorlevel%\r\n'
     (bundle/'Start-Local-QA.cmd').write_bytes(launcher.encode('ascii'))
@@ -68,12 +76,20 @@ def main():
     manifest={'source_commit':args.source_commit,'application_version':__version__,
               'code_sha256':code_fingerprint(),'report_format':'fet-template-report-1','template_version':'1.0.0+hi.1',
               'metric_storage_schema':3,'actual_user_data_included':False}
+    manifest['observation_report_format']='branch-observations-1.0'
+    manifest['benchmark_report_format']='basic-parameters-1'
+    manifest['current_user_units_confirmed']=bool(args.measurement_profile)
+    manifest['local_source_modified']=args.source_commit=='local-uncommitted'
     (bundle/'release-build.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
     source=args.output/f'research-automation-source-v{__version__}';source.mkdir(exist_ok=False)
     for p in bundle.iterdir():
         if p.name=='runtime':continue
         if p.is_dir():shutil.copytree(p,source/p.name)
         else:shutil.copy2(p,source/p.name)
+    generic=copy.deepcopy(config);generic['measurement_profile']=copy.deepcopy(DEFAULT['measurement_profile']);generic['benchmark']['electrode_pair']=None
+    (source/'qa-config.json').write_text(json.dumps(generic,ensure_ascii=False,indent=2),encoding='utf-8')
+    source_manifest=copy.deepcopy(manifest);source_manifest['current_user_units_confirmed']=False
+    (source/'release-build.json').write_text(json.dumps(source_manifest,indent=2),encoding='utf-8')
     results=[archive(bundle,args.output/(name+'.zip')),archive(source,args.output/(source.name+'.zip'))]
     (args.output/'SHA256SUMS.txt').write_text(''.join(r['sha256']+'  '+r['name']+'\n' for r in results),encoding='utf-8')
     (args.output/'release-artifacts.json').write_text(json.dumps({'build':manifest,'artifacts':results},indent=2),encoding='utf-8')

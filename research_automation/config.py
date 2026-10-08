@@ -17,6 +17,9 @@ DEFAULT = {
     "qc": {"gate_leakage_a": 1e-7, "zero_offset_a": 1e-7, "zero_voltage_tolerance_v": 1e-9, "current_jump_a": 5e-8, "hysteresis_mean_difference_a": 1e-7, "max_invalid_fraction": 0.05},
     "ai": {"enabled": False, "model": "gpt-4.1-mini", "timeout_seconds": 45, "max_attempts": 3, "max_output_tokens": 1800, "max_groups": 20, "include_filename": False},
     "organization": {"path_rules": []},
+    "measurement_profile": {"voltage_unit": None, "current_unit": None, "confirmed": False, "source": None},
+    "benchmark": {"enabled": True, "metadata_root": None, "electrode_pair": None,
+        "fit_range_v": [0.6, 2.0], "gm_windows_v": [2.0, 4.0, 8.0], "min_fit_points": 5},
     "science": {
         "rr_voltages_v": [0.5, 1.0, 1.5, 2.0],
         "detection_limit_a": None, "detection_limit_evidence": None,
@@ -39,6 +42,9 @@ class Config:
         self.path = Path(path).resolve()
         self.root = self.path.parent
         self.data = json.loads(self.path.read_text(encoding="utf-8-sig"))
+        for section in ("measurement_profile", "benchmark"):
+            self.data.setdefault(section, copy.deepcopy(DEFAULT[section]))
+            for key,value in DEFAULT[section].items():self.data[section].setdefault(key,copy.deepcopy(value))
         self.data.setdefault("organization", copy.deepcopy(DEFAULT["organization"]))
         self.data.setdefault("science", copy.deepcopy(DEFAULT["science"]))
         for key, value in DEFAULT["science"].items():
@@ -70,9 +76,21 @@ class Config:
             raise ValueError("설정의 최상위 필드는 config.example.json과 같아야 합니다.")
         if set(d["paths"]) != set(DEFAULT["paths"]):
             raise ValueError("설정에 필요한 paths 필드가 누락되었습니다.")
-        for section in ("ingest", "columns", "analysis", "qc", "ai", "organization", "science"):
+        for section in ("ingest", "columns", "analysis", "qc", "ai", "organization", "science", "measurement_profile", "benchmark"):
             if set(d[section]) != set(DEFAULT[section]):
                 raise ValueError(f"{section}의 필드는 config.example.json과 같아야 합니다.")
+        profile=d['measurement_profile']
+        if not isinstance(profile['confirmed'],bool):raise ValueError('measurement_profile.confirmed: true/false required')
+        if profile['confirmed'] and (profile['voltage_unit'] not in ('V','mV','uV') or profile['current_unit'] not in ('A','mA','uA','nA','pA') or not isinstance(profile['source'],str) or not profile['source'].strip()):
+            raise ValueError('확인된 단위 프로필에는 전압·전류 단위와 확인 출처가 필요합니다.')
+        bench=d['benchmark']
+        if not isinstance(bench['enabled'],bool):raise ValueError('benchmark.enabled: true/false required')
+        for key in ('metadata_root','electrode_pair'):
+            if bench[key] is not None and (not isinstance(bench[key],str) or not bench[key].strip()):raise ValueError('benchmark.'+key+': string or null required')
+        limits=bench['fit_range_v']
+        if not isinstance(limits,list) or len(limits)!=2 or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) for v in limits) or not 0<limits[0]<limits[1]:raise ValueError('benchmark.fit_range_v: positive ascending range required')
+        if not isinstance(bench['gm_windows_v'],list) or not bench['gm_windows_v'] or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or v<=0 for v in bench['gm_windows_v']):raise ValueError('benchmark.gm_windows_v: positive finite widths required')
+        if not isinstance(bench['min_fit_points'],int) or isinstance(bench['min_fit_points'],bool) or bench['min_fit_points']<5:raise ValueError('benchmark.min_fit_points: integer >=5 required')
         rules = d["organization"]["path_rules"]
         if not isinstance(rules, list):
             raise ValueError("organization.path_rules must be a list")

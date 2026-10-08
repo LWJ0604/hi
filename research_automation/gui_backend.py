@@ -34,7 +34,7 @@ def ensure_config(path):
     return Config(path)
 
 
-def save_settings(path, inbox, vault, ai_enabled):
+def save_settings(path, inbox, vault, ai_enabled, confirmed_va=None, electrode_pair=None):
     current = Config(path)
     data = copy.deepcopy(current.data)
     if not isinstance(ai_enabled, bool):
@@ -48,6 +48,21 @@ def save_settings(path, inbox, vault, ai_enabled):
             data["paths"][key] = str(candidate)
             changed = True
     data["ai"]["enabled"] = ai_enabled
+    if confirmed_va is not None:
+        if not isinstance(confirmed_va,bool):raise ValueError('단위 확인은 켜기/끄기로 지정하세요.')
+        profile=data['measurement_profile']
+        already_va=profile['confirmed'] and profile['voltage_unit']=='V' and profile['current_unit']=='A'
+        if confirmed_va and not already_va:
+            data['measurement_profile']={'voltage_unit':'V','current_unit':'A','confirmed':True,
+                'source':'GUI에서 사용자 확인 '+now(current).isoformat()}
+            changed=True
+        elif not confirmed_va and already_va:
+            data['measurement_profile']={'voltage_unit':None,'current_unit':None,'confirmed':False,'source':None}
+            changed=True
+    if electrode_pair is not None:
+        if not isinstance(electrode_pair,str):raise ValueError('전극쌍은 device.md의 이름으로 지정하세요.')
+        pair=electrode_pair.strip() or None
+        if pair!=data['benchmark']['electrode_pair']:data['benchmark']['electrode_pair']=pair;changed=True
     if not changed:
         return current
     # Validate all paths/QC before touching the user's existing configuration.
@@ -129,6 +144,8 @@ def check_api_key(client=None):
 
 def safe_error(error):
     text = str(error)
+    if isinstance(error,PermissionError):text+=' 폴더의 쓰기 권한과 다른 프로그램의 파일 사용 여부를 확인한 뒤 다시 실행하세요.'
+    elif isinstance(error,FileNotFoundError):text+=' 입력 폴더와 파일 위치를 확인한 뒤 다시 선택하세요.'
     key = os.environ.get("OPENAI_API_KEY", "")
     return (text.replace(key, "[API 키 숨김]") if key else text)[:2000]
 
@@ -147,6 +164,8 @@ def job_row(job):
                      (f" (u={item['support']['evaluation_abs_vd_v']} V)" if 'evaluation_abs_vd_v' in item['support'] else '')
                      for item in items if isinstance(item['support'].get('value'), (int, float))][:3]
             row['metric_summary'] = '핵심 지표 (최대 3개, 후보 포함): ' + (' · '.join(shown) if shown else '값 보류 또는 저장된 근거 없음')
+            if summary.get('observation_headlines'):
+                row['metric_summary']='관측 수치 (가정·한계 포함): '+' · '.join(summary['observation_headlines'][:3])+'\n모든 branch·원본 점: 선택 측정 수치 검토'
             row["review_required"] = context.get("metadata_status") != "confirmed" if "metadata_status" in context else bool(context.get("warnings"))
             detail = "\n".join(context.get("warnings", []))
             for key, label in (("measurement_date", "측정 날짜"), ("illumination", "조명"), ("device_name", "소자 이름"), ("device_type", "소자 종류"), ("source_folder_path", "상위 폴더 경로"), ("Settings/Last Executed", "장비 기록"), ("folder/", "폴더: ")):
@@ -155,9 +174,48 @@ def job_row(job):
                 detail = "메타데이터: " + context["metadata_status"] + " (PASS/SKIP과 별개)\n" + detail
             row["details"] = detail
             row["qc_details"] = "\n".join(f"{check['code']} ({check.get('scope', '')}): {check['status']}" for check in summary["qc"]["checks"] if check["status"] in ("WARN", "FAIL"))[:5000]
+            if summary.get('benchmark_report_format')=='basic-parameters-1':
+                _basic_job_row(row,summary,Path(job['result_path']).parent)
         except (OSError, ValueError, KeyError):
             row["details"] = "결과 파일을 읽을 수 없습니다. 원본이 있으면 다시 분석하세요."
     return row
+
+
+def _basic_job_row(row,summary,directory):
+    """Use the same file-scoped evidence as the primary report in the GUI."""
+    for i,item in enumerate(summary.get('benchmark_summary',[]),1):
+        path=directory/'benchmark'/'diagnostics'/f'{i:02d}-source.json'
+        if not path.is_file():continue
+        evidence=json.loads(path.read_text(encoding='utf-8'))
+        original=Path(evidence['source']).as_posix()
+        if not original.endswith('/'+summary['source_relative_path'].replace('\\','/')):continue
+        data=evidence['metadata']['data'];conditions=evidence['conditions']
+        fields=evidence['metadata'].get('override',{}).get('fields',{})
+        name=fields.get('device_name',data.get('device_name',{}))
+        if isinstance(name,dict) and name.get('value'):row['device_name']=str(name['value'])
+        measured=conditions.get('measurement_date',{})
+        row['measurement_date']=str(measured.get('value') or '미확인') if isinstance(measured,dict) else '미확인'
+        row['condition_label']=row['condition_label'].replace('__',' · ').replace('unknown','광 미확인')
+        values=[]
+        if item.get('RR_min') is not None:
+            import csv
+            with (directory/'benchmark'/'csv'/f'{i:02d}-RR.csv').open(encoding='utf-8-sig',newline='') as stream:
+                voltages=list(dict.fromkeys(record['abs_Vd_V'] for record in csv.DictReader(stream)))
+            values.append(f"RR {item['RR_min']:.3g}~{item['RR_max']:.3g} (|Vd|="+'/'.join(f'{float(v):g}' for v in voltages)+' V · 전체 기록 조건)')
+        for metric in item.get('transfer_metrics',[]):
+            if metric['current_range_ratio'] is not None:values.append(f"측정 범위 전류비 {metric['current_range_ratio']:.3g}")
+            peak=next((p for p in metric['gm_peaks'] if p['width']==4),next(iter(metric['gm_peaks']),None))
+            if peak:values.append(f"gm {peak['value_A_V']*1e9:.3g} nS (국소 {peak['width']:g} V 창 · Vg={peak['Vg_V']:g} V)")
+        row['metric_summary']='사용 가능한 기초 수치: '+(' · '.join(values[:3]) if values else '단위 또는 계산 조건 확인 대기')+f"\n원시 {item['points']:,}점 · 전체 피팅 {item['fit_count']}개 · 선택 기본 보고서에서 그림과 원본 셀 확인"
+        units=all(m.get('unit_status')=='confirmed' for record in evidence['records'] for k,m in record['column_mapping'].items() if k in ('vd','vg','id','ig'))
+        row['review_required']=True
+        row['next_check']='전압·전류 단위를 확인하세요.' if not units else '선택 파일의 실제 측정일을 확인하세요.' if row['measurement_date']=='미확인' else '연결된 파일의 물리적 배선을 확인하세요.' if len(summary['benchmark_summary'])>1 else '평가 전압의 원본점을 확인하세요.'
+        from .benchmark_report import readable,num
+        row['details']='조건 근거: device.md와 선택 파일 확인 이력 · 광 '+readable(conditions.get('illumination'))+'\n실제 시각 '+readable(conditions.get('measurement_time'))
+        if conditions.get('sweep_delay_user_s') is not None or conditions.get('sweep_delay_settings_s') is not None:
+            row['details']+='\nSweep delay: 사용자 '+num(conditions.get('sweep_delay_user_s'))+' s / 장비 '+num(conditions.get('sweep_delay_settings_s'))+' s · 차이가 있으면 불일치 유지'
+        row['qc_details']='상세 점검·최적화 진단은 보고서의 분리 진단 자료에서 확인하세요.'
+        return
 
 
 def metadata_update_notice(result, source):

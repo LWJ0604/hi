@@ -79,6 +79,12 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("init", help="기본 설정과 로컬 폴더 생성")
     commands.add_parser("doctor", help="경로·패키지·출력·API 키 유무 확인")
+    observe_cmd=commands.add_parser('observe',help='선택 측정의 모든 branch·수치·계산 근거를 새 폴더에 검토; 기존 노트/DB 보존')
+    observe_cmd.add_argument('--source',action='append',help='Inbox 상대 경로; 반복 지정 가능')
+    observe_cmd.add_argument('--all',action='store_true',help='Inbox 전체를 명시적으로 선택')
+    report_cmd=commands.add_parser('report',help='선택 파일의 기본 파라미터·원시 그래프·모델과 잔차 보고서를 새 폴더에 생성')
+    report_cmd.add_argument('--source',action='append',required=True,help='Inbox 상대 경로; 두 파일을 반복 지정하면 명시적 연결')
+    report_cmd.add_argument('--no-pair',action='store_true',help='device.md의 연결을 사용하지 않고 선택 파일만 출력')
     scan_cmd = commands.add_parser("scan", help="신규/변경 파일 1회 처리")
     scan_cmd.add_argument("--retry-failed", action="store_true")
     scan_cmd.add_argument("--source",action="append",help="선택 원본의 Inbox 상대 경로; 반복 지정 가능")
@@ -110,6 +116,11 @@ def main():
             output({"config": str(cfg.path), "created": True})
             return 0
         cfg = Config(args.config)
+        if args.command=='report':
+            from .benchmark_batch import generate
+            from .store import lock
+            with lock(cfg):result=generate(cfg,args.source,auto_pair=not args.no_pair)
+            output(result);return 0
         if args.command=="preview":
             from .change_preview import preview
             output(preview(cfg,args.source));return 0
@@ -130,6 +141,13 @@ def main():
             output(refresh_plots(cfg, args.source));return 0
         if os.name=="nt" and args.command in ("scan","watch","doctor") and any(not cfg.paths[k].is_dir() for k in ("inbox","vault")):
             raise ValueError("현재 PC의 Inbox/Vault 경로를 찾지 못했습니다. GUI에서 실제 폴더를 선택하세요.")
+        if args.command=='observe':
+            from .observation_batch import observe
+            from .pipeline import candidates
+            if args.all and args.source:raise ValueError('--all과 --source 중 하나를 선택하세요.')
+            sources=[p.relative_to(cfg.paths['inbox']).as_posix() for p in candidates(cfg)] if args.all else args.source
+            result=observe(cfg,sources);output(result)
+            return 1 if any(r['status']=='failed' for r in result['files']) else 0
         cfg.ensure_dirs()
         if args.command == "doctor":
             output(doctor(cfg))

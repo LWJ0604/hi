@@ -34,6 +34,9 @@ class Base(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.data = copy.deepcopy(DEFAULT)
+        # This shared fixture checks the retained legacy pipeline and views.
+        # Default basic-report behavior has its own acquisition/model tests.
+        self.data['benchmark']['enabled']=False
         self.data["ingest"]["stable_seconds"] = .001
         self.data["ingest"]["retry_seconds"] = .001
         self.path = self.root / "config.json"
